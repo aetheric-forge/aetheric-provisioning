@@ -10,7 +10,7 @@ The intended flow is **load definition → configure bindings and parent context
 - [Milestones and completion gates](docs/milestones.md)
 - [Future roadmap](docs/roadmap.md)
 
-M1 now provides a standalone engine, a Blazor simulation host, and a non-UI harness. Live provisioning and general definition loading remain planned work. Milestones have no committed dates.
+M2 adds public GitHub loading, YAML validation, and a configuration/review workflow around the standalone engine. Execution is still simulated; live provisioning remains planned work. Milestones have no committed dates.
 
 ## Architectural commitments
 
@@ -38,7 +38,14 @@ dotnet run --project samples/Aetheric.Provisioning.Harness --configuration Relea
 dotnet run --project src/Aetheric.Provisioning.Web --configuration Release --no-build --urls http://localhost:5180
 ```
 
-Open `http://localhost:5180` for the Blazor simulation. No provider accounts or credentials are needed. The checkbox injects one failure in the next owned action; run again to retry. After an owned action completes, later runs reuse its checkpoint, so failure injection no longer applies to that completed action.
+Open `http://localhost:5180` for the Blazor workflow. No provider accounts or credentials are needed.
+
+1. Load the default public ADR Campus repository, selecting a branch, tag, or commit and the two YAML paths. Alternatively, use the bundled Decisions example for offline development.
+2. Edit deployment defaults and provide a parent identity/revision. Mark the capabilities available in the **simulated** parent context. The bundled example supplies this simulated context explicitly.
+3. Review owned actions, inherited requirements, effective bindings, and the pinned source commit.
+4. Approve the exact plan and run the simulation. Editing any source/configuration input invalidates the review and approval.
+
+GitHub requests are unauthenticated and subject to public API limits. Other Git hosts and private repositories are not supported yet. The app never clones, builds, or executes repository code.
 
 The harness deliberately fails once, retries, and repeats the completed plan. It exits with code 0 only if the failure is observed, retry succeeds, the synthetic credential is reused, and one simulated resource is created.
 
@@ -47,9 +54,11 @@ The harness deliberately fails once, retries, and repeats the completed plan. It
 | Project | Responsibility |
 | --- | --- |
 | `src/Aetheric.Provisioning.Engine` | Host-independent contracts, validation, immutable planning, and execution |
+| `src/Aetheric.Provisioning.Definitions` | Public GitHub source adapter and supported YAML-profile validation |
+| `src/Aetheric.Provisioning.Application` | Host-independent load/configure/review/approval lifecycle |
 | `src/Aetheric.Provisioning.Simulation` | Pinned Decisions fixture projection, simulated Workbench and parent, in-memory state and secrets |
-| `src/Aetheric.Provisioning.Web` | Blazor Interactive Server host for the simulation |
+| `src/Aetheric.Provisioning.Web` | Blazor Interactive Server source/configuration/review workflow with simulated execution |
 | `samples/Aetheric.Provisioning.Harness` | Non-UI M1 acceptance demonstration; not the future CLI product |
 | `tests/Aetheric.Provisioning.Tests` | Planning, ownership, failure/retry, state, cancellation, and secret-reference tests |
 
-See [M1 architecture and validation evidence](docs/m1-foundation.md) for the extension points and limitations. The engine has no YAML, Blazor, hosting, or provider SDK dependencies.
+See [M2 loading and review](docs/m2-loading-review.md) for current behavior, validation, and limitations, and [M1 architecture](docs/m1-foundation.md) for the foundation. The engine has no YAML, Blazor, hosting, or provider SDK dependencies.

@@ -92,7 +92,9 @@ public sealed class ProvisioningPlanner(IEnumerable<IResourceProvider> providers
         // Sort unordered maps/sets so equivalent inputs have the same plan identity.
         var canonical = new
         {
-            input.DefinitionSource, input.BindingsSource, input.Parent,
+            input.DefinitionSource, input.BindingsSource,
+            Parent = new { input.Parent.Id, input.Parent.Revision,
+                Capabilities = input.Parent.Capabilities.OrderBy(x => x.Key, StringComparer.Ordinal) },
             input.Institution.Id, input.Institution.Version,
             Resources = input.Institution.Resources.OrderBy(x => x.Id, StringComparer.Ordinal),
             Dependencies = input.Institution.ParentContracts.Order(StringComparer.Ordinal),

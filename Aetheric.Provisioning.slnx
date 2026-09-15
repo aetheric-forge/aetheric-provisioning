@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Aetheric.Provisioning.Application/Aetheric.Provisioning.Application.csproj" />
+    <Project Path="src/Aetheric.Provisioning.Definitions/Aetheric.Provisioning.Definitions.csproj" />
     <Project Path="src/Aetheric.Provisioning.Engine/Aetheric.Provisioning.Engine.csproj" />
     <Project Path="src/Aetheric.Provisioning.Simulation/Aetheric.Provisioning.Simulation.csproj" />
     <Project Path="src/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj" />

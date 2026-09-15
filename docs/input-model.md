@@ -51,3 +51,9 @@ No MongoDB database, S3 bucket, or Keycloak client is requested for creation by 
 - Agree how exported configuration is consumed by the mounted Decisions institution. The YAML artifact alone does not implement that integration.
 
 These decisions keep M0 open. They do not require replacing the supplied institutional definition with a provider-specific schema.
+
+## M2 implementation decisions
+
+The provisioner now supports the supplied YAML shape through its Definitions library; this does not add a YAML loader to `aetheric-runtime`. The profile is documented in [M2 loading and review](m2-loading-review.md). Institution version and schema/profile version remain distinct.
+
+For review, a parent context has an identity, revision, and an explicit contract-to-source catalog. All three contribute to plan identity. Missing or mismatched entries block review. The current host marks this catalog as simulated and does not treat it as proof of live infrastructure access. The `IParentCapabilityResolver` remains the seam for live verification in M3.

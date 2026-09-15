@@ -1,10 +1,21 @@
+using Aetheric.Provisioning.Application;
+using Aetheric.Provisioning.Definitions;
+using Aetheric.Provisioning.Engine;
 using Aetheric.Provisioning.Simulation;
 using Aetheric.Provisioning.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
-// Each browser circuit gets an isolated, in-memory simulation.
-builder.Services.AddScoped<SimulationSession>();
+builder.Services.AddSingleton(_ => PublicGitHubSource.CreateHttpClient());
+builder.Services.AddScoped<IDefinitionSource, PublicGitHubSource>();
+builder.Services.AddSingleton<InstitutionYamlReader>();
+builder.Services.AddScoped<IResourceProvider, SimulatedWorkbenchProvider>();
+builder.Services.AddScoped<IParentCapabilityResolver, SimulatedCatalogParentResolver>();
+builder.Services.AddScoped<IRunStateStore, InMemoryRunStateStore>();
+builder.Services.AddScoped<ISecretStore, InMemorySecretStore>();
+builder.Services.AddScoped<ProvisioningPlanner>();
+builder.Services.AddScoped<ProvisioningEngine>();
+builder.Services.AddScoped<ProvisioningReview>();
 var app = builder.Build();
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/error");
 app.UseStaticFiles();
