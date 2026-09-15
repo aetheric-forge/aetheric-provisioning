@@ -7,12 +7,13 @@ Status: planned. No completion dates are committed. Each milestone closes when i
 Deliverables:
 
 - v0.1 scope, acceptance criteria, and future roadmap.
-- A concrete institution fixture from `aetheric-runtime` and an agreed way to obtain its resource requirements.
-- Decisions on definition trust/loading, provider targets, ownership, secret storage, and configuration output.
+- The pinned ADR Campus Decisions definition and bindings as the concrete fixture, interpreted under the runtime constitution.
+- A parent-context input and explicit separation of owned actions from inherited capability validation.
+- Decisions on YAML validation, parent resolution, Redis/Workbench operations and fallback policy, secret storage, and configuration output.
 
 Exit gate: the first institution's complete resource list can be explained and mapped to supported provider operations. Remaining unknowns do not require inventing the institution contract.
 
-Current state: planning documents drafted; the concrete institution contract is an external dependency.
+Current state: the Decisions definition and bindings are available at ADR Campus commit `4e398147f9a7cd8ba47258a8e416f3e86f404a93`. M0 remains open for parent-context verification, binding operations, and the other integration decisions in [the input model](input-model.md).
 
 ## M1 — Engine and repository foundation
 
@@ -20,31 +21,32 @@ Deliverables:
 
 - .NET solution with a standalone engine, provider adapter boundaries, Blazor host, and tests.
 - Contracts for source provenance, validation, plans, progress, outcomes, state, and secret references.
-- A simulated provider and a provisional example for local development.
+- A simulated provider and parent-context test double using the supplied Decisions artifacts.
 - Build/test commands and initial CI.
 
 Exit gate: a non-UI test host can plan and execute the example, observe failures, and retry. Engine dependencies contain no Blazor components or interactive prompts.
 
-Dependencies: architectural scope from M0. The simulation may proceed while the concrete institution is pending; it must not be treated as the final runtime integration.
+Dependencies: architectural scope from M0. Simulation can proceed against the supplied artifacts while deployment integration details are resolved; it does not satisfy live release verification.
 
 ## M2 — Public Git loading and plan review
 
 Deliverables:
 
 - Public Git source loading with commit pinning and definition validation.
-- Mapping from the agreed runtime contract to the engine's plan.
+- YAML loading and validation for the definition and bindings, combined with parent context to produce the engine’s plan.
 - Blazor source/configuration/review workflow, including defaults and overrides.
 - Actionable missing-input, unsupported-resource, and invalid-definition results.
 
 Exit gate: SC-01, SC-02, and SC-03 pass against the actual institution. Reviewing a plan does not mutate provider infrastructure.
 
-Dependencies: M1 and the completed contract/trust decisions from M0.
+Dependencies: M1 and the YAML validation and parent-context decisions from M0.
 
 ## M3 — Real provisioning and credential handling
 
 Deliverables:
 
-- MongoDB, S3, and Keycloak adapters for the first institution's required operations.
+- Workbench/Redis operations selected by the Decisions bindings, plus inherited capability checks.
+- No implicit provisioning or mutation of parent-owned services.
 - Existing-resource inspection and conflict handling.
 - Secure credential generation, explicit overrides, and protected secret persistence.
 - Live per-resource progress and results in the SPA.
@@ -79,4 +81,4 @@ Dependencies: M4.
 
 ## Tracking convention
 
-When implementation begins, link issues or pull requests to a milestone and applicable success-criteria IDs. Record evidence alongside each completed gate, including the institution commit and provider versions. Update this document when scope changes; do not silently redefine a gate to match partial implementation.
+When implementation begins, link issues or pull requests to a milestone and applicable success-criteria IDs. Record evidence alongside each completed gate, including the institution commit, effective bindings, parent context, and provider versions. Update this document when scope changes; do not silently redefine a gate to match partial implementation.
