@@ -1,6 +1,6 @@
 # Milestones
 
-Status: planned. No completion dates are committed. Each milestone closes when its evidence is recorded, not merely when code has been written.
+Status: M1 foundation implemented for review; M0 deployment decisions remain open. No completion dates are committed. Each milestone closes when its evidence is recorded, not merely when code has been written.
 
 ## M0 — Scope and contract agreement
 
@@ -27,6 +27,8 @@ Deliverables:
 Exit gate: a non-UI test host can plan and execute the example, observe failures, and retry. Engine dependencies contain no Blazor components or interactive prompts.
 
 Dependencies: architectural scope from M0. Simulation can proceed against the supplied artifacts while deployment integration details are resolved; it does not satisfy live release verification.
+
+Evidence: the standalone harness passes the failure/retry/repeat scenario against the pinned Decisions fixture. Release build and 19 automated tests pass; the Blazor host passes HTTP smoke checks. See [M1 evidence and limitations](m1-foundation.md). The full v0.1 success criteria are not claimed by this milestone.
 
 ## M2 — Public Git loading and plan review
 

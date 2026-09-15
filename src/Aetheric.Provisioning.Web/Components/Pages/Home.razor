@@ -1,0 +1,71 @@
+@page "/"
+@rendermode InteractiveServer
+@inject SimulationSession Session
+
+<PageTitle>Aetheric Provisioning</PageTitle>
+<main>
+    <header><span class="eyebrow">AETHERIC FORGE / MILESTONE 1</span><span class="badge">Simulation</span></header>
+    <h1>A home for Decisions.</h1>
+    <p class="lede">One owned workspace. Four capabilities inherited from its parent.</p>
+    <aside>This demonstration uses the pinned Decisions definition and deployment bindings. It creates no live resources. State and synthetic credentials last only for this browser session.</aside>
+    @if (_planning is { IsValid: true, Plan: not null })
+    {
+        var plan = _planning.Plan;
+        <section class="summary">
+            <div><span>INSTITUTION</span><strong>@plan.Input.Institution.Id</strong></div>
+            <div><span>DEPLOYMENT</span><strong>@plan.Input.Bindings.Environment</strong></div>
+            <div><span>PARENT</span><strong>@plan.Input.Parent.Id</strong></div>
+        </section>
+        <h2>Review the plan</h2>
+        <p>Workbench / Redis is selected by the deployment bindings. The parent-owned decision record uses inherited Archive and Library capabilities.</p>
+        <div class="table-wrap"><table>
+            <thead><tr><th>Requirement</th><th>Action</th><th>Binding</th><th>Result</th></tr></thead>
+            <tbody>
+            @foreach (var step in plan.Steps)
+            {
+                <tr><td>@step.Target</td><td>@(step.Kind == StepKind.CheckParent ? "Verify inherited capability" : "Provision owned workspace")</td>
+                    <td>@(step.Source ?? $"{step.Binding!.Provider} / {step.Binding.Settings["backing"]}")</td>
+                    <td>@(_outcomes.GetValueOrDefault(step.Id)?.Status.ToString() ?? "Ready")</td></tr>
+            }
+            </tbody>
+        </table></div>
+        <p class="muted">The declared in-memory fallback is not exercised: this simulation keeps the Redis binding unchanged.</p>
+        <div class="controls">
+            <label><input type="checkbox" @bind="_failNext" disabled="@_running" /> Fail the next owned action to exercise retry</label>
+            <button @onclick="Run" disabled="@_running">@(_running ? "Running…" : "Run simulation / retry")</button>
+        </div>
+        <p role="status" aria-live="polite">@_status</p>
+        <details><summary>Source provenance</summary><p>ADR Campus commit <code>@plan.Input.DefinitionSource.Commit</code></p><p>Plan <code>@plan.Id</code></p></details>
+    }
+    else if (_planning is not null)
+    {
+        <h2>Plan needs attention</h2>
+        @foreach (var issue in _planning.Issues) { <p>@issue.Target: @issue.Message</p> }
+    }
+    <footer>Standalone engine · In-memory simulation · Live provisioning follows in M3</footer>
+</main>
+
+@code {
+    private PlanningResult? _planning;
+    private readonly Dictionary<string, StepOutcome> _outcomes = [];
+    private bool _running;
+    private bool _failNext;
+    private string _status = "Review the plan, then run the simulation.";
+    protected override void OnInitialized() => _planning = Session.Planner.Plan(Session.Input);
+    private async Task Run()
+    {
+        if (_running || _planning?.Plan is not { } plan) return;
+        _running = true;
+        Session.Provider.FailNext = _failNext;
+        Session.Provider.Delay = TimeSpan.FromMilliseconds(300);
+        try
+        {
+            var result = await Session.Engine.ExecuteAsync(plan);
+            foreach (var outcome in result.Outcomes) _outcomes[outcome.StepId] = outcome;
+            _status = result.Succeeded ? "Simulation complete. No live infrastructure was changed."
+                : "Simulation incomplete. Retry to continue; completed work is retained in this session.";
+        }
+        catch { _status = "The simulation could not complete. Reload to start a fresh session."; }
+        finally { _running = false; _failNext = false; }
+    }
+}
