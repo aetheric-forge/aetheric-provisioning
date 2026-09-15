@@ -4,9 +4,9 @@ The order below expresses intended priorities, not committed release dates or fi
 
 ## Foundation: v0.1
 
-Public Git → institution resource plan → operator review → real provisioning through a standalone engine → usable runtime configuration.
+Public Git definition + deployment bindings + parent context → owned-resource actions and inherited-capability checks → operator review → execution through a standalone engine → usable deployment configuration.
 
-Initial providers: MongoDB, S3, and Keycloak. Generated resource credentials with overrides and restart-safe retry are part of this foundation.
+The initial fixture is the Decisions Office: a Redis-backed owned draft workspace with Archive, Library, Post Office, and Registrar inherited from its parent. Generated credentials where required by the deployment, explicit overrides, and restart-safe retry are part of this foundation.
 
 ## Next: unattended operation
 
@@ -14,7 +14,7 @@ Make the existing engine convenient to run without the SPA:
 
 - CLI commands for validation, planning, execution, status, and configuration output.
 - Explicit non-interactive inputs, stable exit codes, and machine-readable results.
-- CI examples using a pinned institution commit and supplied provider connections.
+- CI examples using a pinned institution commit, deployment bindings, parent context, and supplied provider connections.
 - Complete automated setup from known inputs, including generated resource credentials, while retaining overrides.
 - A repeatable way to approve and execute the same saved plan in separate stages.
 
@@ -51,7 +51,8 @@ Readiness gate: settle service tenancy and authorization boundaries before expos
 
 ## Demand-driven expansion
 
-- Additional resource providers justified by real institution requirements.
+- MongoDB, S3, and Keycloak adapters for owned resources selected by concrete deployment bindings, including future parent Campus deployments.
+- Additional providers justified by institution requirements and deployment choices.
 - Broader tested S3 and provider-version compatibility.
 - Reusable environment profiles and institution catalogs.
 - Extensible provider packages with versioned contracts.
@@ -60,7 +61,9 @@ Readiness gate: settle service tenancy and authorization boundaries before expos
 ## Principles that carry forward
 
 - One engine serves the SPA, CLI, API, and automation.
-- The runtime owns the institution definition; provisioning consumes its requirements.
+- Institutions and Organizations remain technology-independent under the runtime constitution.
+- Provisioning combines institutional requirements with separate deployment bindings and parent context.
+- Inherited capabilities are resolved and verified; provisioning a child does not implicitly provision its parent.
 - Defaults reduce setup work; overrides remain explicit and reviewable.
 - Retries preserve identity and secrets; rotation and destructive changes are deliberate operations.
 - Report unsupported requirements and incomplete work honestly.
