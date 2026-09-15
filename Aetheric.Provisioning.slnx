@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Aetheric.Provisioning.Engine/Aetheric.Provisioning.Engine.csproj" />
+    <Project Path="src/Aetheric.Provisioning.Simulation/Aetheric.Provisioning.Simulation.csproj" />
+    <Project Path="src/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Aetheric.Provisioning.Harness/Aetheric.Provisioning.Harness.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Aetheric.Provisioning.Tests/Aetheric.Provisioning.Tests.csproj" />
+  </Folder>
+</Solution>
