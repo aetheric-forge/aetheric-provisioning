@@ -13,7 +13,11 @@ public sealed record ResourceBinding(string Provider, ImmutableDictionary<string
 public sealed record DeploymentBindings(string InstitutionId, string InstitutionVersion, string Environment,
     ImmutableDictionary<string, ResourceBinding> Resources,
     ImmutableDictionary<string, string> ParentSources);
-public sealed record ParentContext(string Id, string Revision);
+public sealed record ParentContext(string Id, string Revision)
+{
+    // Explicit capability catalog supplied by the host; live verification is the resolver's responsibility.
+    public ImmutableDictionary<string, string> Capabilities { get; init; } = ImmutableDictionary<string, string>.Empty;
+}
 public sealed record PlanningInput(InstitutionRequirements Institution, DeploymentBindings Bindings,
     ParentContext Parent, SourceProvenance DefinitionSource, SourceProvenance BindingsSource);
 public sealed record ValidationIssue(string Code, string Target, string Message);

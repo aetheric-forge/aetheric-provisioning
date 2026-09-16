@@ -1,5 +1,7 @@
 # M1 foundation
 
+This records the M1 implementation boundary. See [M2 loading and review](m2-loading-review.md) for the current source and review workflow.
+
 ## Implemented boundary
 
 The engine accepts immutable projections of institution requirements, deployment bindings, parent context, and source provenance. These are engine contracts, not a replacement institutional schema. It validates them before constructing an executable plan. A plan captures effective bindings and parent identity/revision; its SHA-256 identity changes with relevant inputs and does not depend on map/set enumeration order.

@@ -1,6 +1,6 @@
 # Milestones
 
-Status: M1 foundation implemented for review; M0 deployment decisions remain open. No completion dates are committed. Each milestone closes when its evidence is recorded, not merely when code has been written.
+Status: M1 merged; M2 loading/review implemented for review. M0 live deployment decisions remain open. No completion dates are committed. Each milestone closes when its evidence is recorded, not merely when code has been written.
 
 ## M0 — Scope and contract agreement
 
@@ -42,6 +42,8 @@ Deliverables:
 Exit gate: SC-01, SC-02, and SC-03 pass against the actual institution. Reviewing a plan does not mutate provider infrastructure.
 
 Dependencies: M1 and the YAML validation and parent-context decisions from M0.
+
+Implementation: a documented first YAML profile and an explicit capability catalog support source/configuration review. Parent checks and execution remain simulated; the catalog does not certify live availability. See [M2 behavior and evidence](m2-loading-review.md). M0 remains open for actual parent access verification and provider deployment details.
 
 ## M3 — Real provisioning and credential handling
 

@@ -7,14 +7,21 @@
         "resolved": "16.3.0",
         "contentHash": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA=="
       },
+      "aetheric.provisioning.definitions": {
+        "type": "Project",
+        "dependencies": {
+          "Aetheric.Provisioning.Engine": "[1.0.0, )",
+          "YamlDotNet": "[16.3.0, )"
+        }
+      },
       "aetheric.provisioning.engine": {
         "type": "Project"
       },
       "aetheric.provisioning.simulation": {
         "type": "Project",
         "dependencies": {
-          "Aetheric.Provisioning.Engine": "[1.0.0, )",
-          "YamlDotNet": "[16.3.0, )"
+          "Aetheric.Provisioning.Definitions": "[1.0.0, )",
+          "Aetheric.Provisioning.Engine": "[1.0.0, )"
         }
       }
     }
