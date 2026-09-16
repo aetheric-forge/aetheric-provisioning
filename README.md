@@ -49,10 +49,13 @@ GitHub requests are unauthenticated and subject to public API limits. Other Git 
 
 The harness deliberately fails once, retries, and repeats the completed plan. It exits with code 0 only if the failure is observed, retry succeeds, the synthetic credential is reused, and one simulated resource is created.
 
+See [durable state and restart recovery](docs/durable-state.md) for the opt-in local persistence stores and process-restart tests. The web simulation still uses in-memory stores.
+
 ## Solution layout
 
 | Project | Responsibility |
 | --- | --- |
+| `src/Aetheric.Provisioning.Persistence` | Atomic local run checkpoints, execution leases, and encrypted secrets |
 | `src/Aetheric.Provisioning.Engine` | Host-independent contracts, validation, immutable planning, and execution |
 | `src/Aetheric.Provisioning.Definitions` | Public GitHub source adapter and supported YAML-profile validation |
 | `src/Aetheric.Provisioning.Application` | Host-independent load/configure/review/approval lifecycle |

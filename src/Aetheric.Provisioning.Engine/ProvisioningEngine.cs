@@ -7,7 +7,7 @@ public sealed class ProvisioningEngine(IEnumerable<IResourceProvider> providers,
 {
     private readonly ImmutableDictionary<string, IResourceProvider> _providers =
         providers.ToImmutableDictionary(x => x.Key, StringComparer.Ordinal);
-    // M1 serializes calls on this engine instance. Distributed locking is a later storage concern.
+    // Stores may additionally serialize the complete run across engine instances/processes.
     private readonly SemaphoreSlim _execution = new(1, 1);
 
     public async Task<RunResult> ExecuteAsync(ProvisioningPlan plan,
@@ -16,6 +16,8 @@ public sealed class ProvisioningEngine(IEnumerable<IResourceProvider> providers,
         await _execution.WaitAsync(cancellationToken);
         try
         {
+            await using var lease = state is IRunExecutionLock locking
+                ? await locking.AcquireAsync(plan.Id, cancellationToken) : null;
             var prior = await state.ReadAsync(plan.Id, cancellationToken);
             var outcomes = ImmutableDictionary.CreateBuilder<string, StepOutcome>();
             foreach (var step in plan.Steps)
@@ -27,7 +29,12 @@ public sealed class ProvisioningEngine(IEnumerable<IResourceProvider> providers,
                     outcome = new(step.Id, OutcomeStatus.Blocked, "dependency.failed", []);
                 else if (step.Kind == StepKind.ProvisionOwned && prior?.Outcomes.TryGetValue(step.Id, out var done) == true
                     && done.IsSuccessful)
+                {
+                    // A checkpoint is not usable if its credentials have been lost or cannot be decrypted.
+                    foreach (var reference in done.Secrets)
+                        _ = await secrets.ReadAsync(reference, cancellationToken);
                     outcome = done with { Status = OutcomeStatus.AlreadySatisfied, Code = "state.completed" };
+                }
                 else
                     outcome = await ExecuteStepAsync(plan, step, cancellationToken);
                 outcomes[step.Id] = outcome;

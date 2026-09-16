@@ -71,6 +71,8 @@ Exit gate: SC-06, SC-07, SC-09, SC-10, and SC-11 pass. Record at least one parti
 
 Dependencies: M3. State and secret abstractions are designed in M1; persistence should be implemented alongside M3 where required for credential handling.
 
+Persistence foundation: local atomic checkpoints, per-plan process leases, encrypted secret persistence, and separate-process failure/restart/retry tests are implemented. See [durable-state behavior and evidence](durable-state.md). The web simulation remains in memory; real-provider restart evidence and runtime configuration output are still required to close M4.
+
 ## M5 — v0.1 release verification
 
 Deliverables:
