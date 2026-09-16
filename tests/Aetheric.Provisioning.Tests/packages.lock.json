@@ -114,6 +114,19 @@
       "aetheric.provisioning.engine": {
         "type": "Project"
       },
+      "aetheric.provisioning.harness": {
+        "type": "Project",
+        "dependencies": {
+          "Aetheric.Provisioning.Persistence": "[1.0.0, )",
+          "Aetheric.Provisioning.Simulation": "[1.0.0, )"
+        }
+      },
+      "aetheric.provisioning.persistence": {
+        "type": "Project",
+        "dependencies": {
+          "Aetheric.Provisioning.Engine": "[1.0.0, )"
+        }
+      },
       "aetheric.provisioning.simulation": {
         "type": "Project",
         "dependencies": {

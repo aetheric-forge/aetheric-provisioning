@@ -78,3 +78,9 @@ public interface ISecretStore
     Task<SecretReference> GetOrCreateAsync(string scope, string name, CancellationToken cancellationToken);
     Task<string> ReadAsync(SecretReference reference, CancellationToken cancellationToken);
 }
+
+// A shared store can serialize a complete read/execute/checkpoint cycle across engines/processes.
+public interface IRunExecutionLock
+{
+    Task<IAsyncDisposable> AcquireAsync(string planId, CancellationToken cancellationToken);
+}

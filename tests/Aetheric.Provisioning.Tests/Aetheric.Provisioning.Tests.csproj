@@ -7,4 +7,6 @@
     <ProjectReference Include="../../src/Aetheric.Provisioning.Simulation/Aetheric.Provisioning.Simulation.csproj" />
     <ProjectReference Include="../../src/Aetheric.Provisioning.Application/Aetheric.Provisioning.Application.csproj" />
   </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Aetheric.Provisioning.Persistence/Aetheric.Provisioning.Persistence.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../samples/Aetheric.Provisioning.Harness/Aetheric.Provisioning.Harness.csproj" /></ItemGroup>
 </Project>

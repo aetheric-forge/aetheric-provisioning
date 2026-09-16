@@ -17,6 +17,12 @@
       "aetheric.provisioning.engine": {
         "type": "Project"
       },
+      "aetheric.provisioning.persistence": {
+        "type": "Project",
+        "dependencies": {
+          "Aetheric.Provisioning.Engine": "[1.0.0, )"
+        }
+      },
       "aetheric.provisioning.simulation": {
         "type": "Project",
         "dependencies": {

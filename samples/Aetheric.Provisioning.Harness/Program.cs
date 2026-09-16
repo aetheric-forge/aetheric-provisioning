@@ -1,6 +1,8 @@
 using Aetheric.Provisioning.Engine;
 using Aetheric.Provisioning.Simulation;
 
+if (args.Length > 0) return await DurableHarness.RunAsync(args);
+
 var session = new SimulationSession();
 var planning = session.Planner.Plan(session.Input);
 if (!planning.IsValid) return 1;
