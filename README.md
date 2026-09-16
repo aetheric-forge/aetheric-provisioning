@@ -26,6 +26,10 @@ M2 adds public GitHub loading, YAML validation, and a configuration/review workf
 
 The first concrete input is ADR Campus’s declarative Decisions Office definition and its separate deployment bindings. See [the input model and source references](docs/input-model.md) for the ownership boundary, known resource requirements, and remaining integration decisions.
 
+## Standalone Workbench
+
+A Workbench provisioning abstraction and Redis backend now support registration and staging verification on an existing standalone Redis database. See [the standalone Workbench contract and acceptance host](docs/standalone-workbench.md). This path assumes no deployed Campus capabilities; the Blazor workflow remains simulated.
+
 ## Build and run
 
 Requires the .NET 10 SDK (the SDK policy is in `global.json`).

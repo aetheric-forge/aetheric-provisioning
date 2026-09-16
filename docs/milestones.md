@@ -59,6 +59,8 @@ Exit gate: SC-04, SC-05, and SC-08 pass against documented provider targets. A s
 
 Dependencies: M2 and test infrastructure with suitable operator credentials.
 
+Standalone increment: a Workbench provisioning abstraction, Redis workspace registration/verification, and a separate acceptance host are implemented. See [the standalone contract](standalone-workbench.md). This does not establish Decisions readiness or close M3; live parent capabilities and resource credential policy remain open.
+
 ## M4 — Resume and usable outputs
 
 Deliverables:
