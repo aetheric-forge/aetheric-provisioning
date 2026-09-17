@@ -19,6 +19,7 @@ public sealed class KeycloakRegistryBootstrapStaff : IRegistryBootstrapStaff, ID
     private readonly IExternalIdentityDirectory _directory;
     private readonly IRegistryClerk _clerk;
     private readonly string _adminRole;
+    private readonly string _clientId;
 
     public KeycloakRegistryBootstrapStaff(RegistryBootstrapSettings settings, KeycloakOptions options)
         : this(settings, options, null) { }
@@ -44,10 +45,35 @@ public sealed class KeycloakRegistryBootstrapStaff : IRegistryBootstrapStaff, ID
         if (!string.Equals(issuer, settings.Issuer, StringComparison.Ordinal))
             throw new ArgumentException("Keycloak issuer does not match the bootstrap deployment record.");
         _adminRole = settings.AdminRole;
+        _clientId = settings.ClientId;
         _http = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false })
             { Timeout = TimeSpan.FromSeconds(30) };
         _directory = new KeycloakExternalIdentityDirectory(_http, options);
         _clerk = new KeycloakRegistryClerk(_http, options);
+    }
+
+    // Read-only preflight. Successful client authentication is not a human sign-in.
+    public async Task CheckConnectionAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _clerk.GetClientAsync(_clientId, ct);
+            if (result.Status != RegistryOperationStatus.Succeeded || result.Value is null)
+                throw new RegistryBootstrapStaffException(result.Status switch
+                {
+                    RegistryOperationStatus.NotFound => "registry.client_missing",
+                    RegistryOperationStatus.Unauthorized => "registry.client_lookup_unauthorized",
+                    _ => "registry.client_lookup_failed"
+                });
+            if (!string.Equals(result.Value.ClientId, _clientId, StringComparison.Ordinal))
+                throw new RegistryBootstrapStaffException("registry.client_mismatch");
+            if (!result.Value.Enabled || result.Value.PublicClient)
+                throw new RegistryBootstrapStaffException("registry.client_unavailable");
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (RegistryBootstrapStaffException) { throw; }
+        catch (Exception) { throw new RegistryBootstrapStaffException("registry.client_lookup_failed"); }
+        await VerifyAdminRoleAsync(ct);
     }
 
     public async Task<bool> PrincipalExistsAsync(string subjectId, CancellationToken ct)

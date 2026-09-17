@@ -1,0 +1,18 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
+WORKDIR /src
+COPY . .
+# The repository's local SDK pin has no published MCR image. Pin the container SDK independently.
+RUN printf '%s\n' '{"sdk":{"version":"10.0.401","rollForward":"disable"}}' > global.json
+RUN dotnet restore src/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj --locked-mode
+RUN dotnet publish src/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj \
+    --configuration Release --no-restore --output /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+RUN mkdir -p /home/app/.aspnet/DataProtection-Keys \
+    && chown -R app:app /home/app/.aspnet
+COPY --from=build /app/publish .
+USER $APP_UID
+ENTRYPOINT ["dotnet", "Aetheric.Provisioning.Web.dll"]

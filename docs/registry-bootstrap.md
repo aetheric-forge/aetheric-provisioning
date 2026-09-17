@@ -36,3 +36,20 @@ Tests exercise the real runtime provider classes with controlled HTTP responses,
 Initialize the pinned submodule before restore (`git submodule update --init --recursive`). CI does this during checkout. Runtime dependency lockfiles live in `external/locks`, outside the unmodified submodule; `external/Directory.Build.props` preserves upstream build settings instead of inheriting provisioning's warnings-as-errors policy. The pinned runtime currently emits seven existing CS0108/CS1066 warnings in `IArchiveProvider`; those are not changed or suppressed here.
 
 Next slice: protected host authentication/SSO routes and UI integration. The current Blazor simulation is unchanged and this adapter does not itself authorize browser requests.
+
+## Setup connection pages
+
+The web host opens at `/` (also `/setup`) with a client ID/secret form and a connection review screen. The existing simulation is at `/simulation`. Configure the destination through deployment configuration:
+
+```sh
+BootstrapConnection__Authority=https://identity.example
+BootstrapConnection__Realm=root
+BootstrapConnection__ClientId=provisioner
+BootstrapConnection__AdminRole=provisioner-admin
+```
+
+With no configuration the page explains what deployment settings are missing and does not accept credentials. The address and realm cannot be supplied by a browser request; the entered client ID must match the configured client. The Keycloak endpoint requires HTTPS, redirects are disabled, and requests time out after 30 seconds. Serve the application over HTTPS when entering real credentials; the production host enables HTTPS redirection and HSTS.
+
+The read-only check uses the runtime Clerk to authenticate the client, inspect its registration (enabled and confidential), and look up the configured role. The service account therefore needs permission to inspect its client registration as well as the realm role. The check does not fetch the client secret, create users, assign roles, or initialize/advance bootstrap state. It does not prove that the service account can perform future assignment operations or that the role has suitable effective privileges.
+
+Credentials exist only in the server-side check/circuit and are cleared from the form after each attempt; neither credentials nor acquired tokens are persisted. Reloading starts a new check. The result page explicitly stops before SSO: client authentication does not establish a bootstrap operator session. Protected operator SSO, selected-principal handoff, and durable connection configuration remain the next slice.

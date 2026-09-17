@@ -1,0 +1,119 @@
+@page "/"
+@page "/setup"
+@rendermode InteractiveServer
+@implements IDisposable
+@using Aetheric.Provisioning.Web
+@using Aetheric.Provisioning.Registry
+@inject BootstrapConnectionConfiguration Configuration
+@inject BootstrapConnection Connection
+
+<PageTitle>Set up Aetheric Provisioning</PageTitle>
+<main class="setup-shell">
+    <header><a class="eyebrow brand" href="/">AETHERIC FORGE / PROVISIONING</a><span class="badge">Initial setup</span></header>
+    <nav aria-label="Setup progress" class="setup-progress">
+        <span aria-current="@(!_connected ? "step" : null)">01 · Connect Keycloak</span>
+        <span aria-current="@(_connected ? "step" : null)">02 · Review connection</span>
+    </nav>
+    @if (!_connected)
+    {
+        <h1>A home for your platform.</h1>
+        <p class="lede">Start by connecting the Keycloak client that will support provisioning.</p>
+        @if (!Configuration.IsConfigured)
+        {
+            <section class="setup-card" role="status">
+                <h2>Configure your Keycloak destination</h2>
+                <p>This deployment needs a Keycloak address, realm, and provisioner client ID before you can connect. Ask the person deploying this app to supply those settings, then reload this page.</p>
+                <a href="/setup">Check again</a>
+            </section>
+        }
+        else
+        {
+            <section class="setup-card" aria-labelledby="connection-heading">
+                <h2 id="connection-heading">Connect to Keycloak</h2>
+                <dl class="connection-details"><dt>Server</dt><dd>@Configuration.Authority</dd><dt>Realm</dt><dd>@Configuration.Realm</dd></dl>
+                <form method="post" @onsubmit="Connect" @onsubmit:preventDefault>
+                    <fieldset disabled="@(_busy || !_interactive)">
+                        <legend class="visually-hidden">Client credentials</legend>
+                        <label for="client-id">Client ID</label>
+                        <input id="client-id" name="client-id" autocomplete="off" required maxlength="200" @bind="_clientId" @bind:event="oninput" />
+                        <label for="client-secret">Client secret</label>
+                        <input id="client-secret" name="client-secret" type="password" autocomplete="off" required maxlength="4096" @bind="_clientSecret" @bind:event="oninput" aria-describedby="secret-help" />
+                        <p id="secret-help" class="muted">Use the client’s secret, not your personal password. It is used for this check and isn’t saved.</p>
+                        <button type="submit">@(_busy ? "Checking connection…" : "Check connection")</button>
+                    </fieldset>
+                </form>
+                @if (_error is not null) { <p class="setup-error" role="alert">@_error</p> }
+                <p class="muted">This checks client access and the configured administrator role. It does not create users or assign permissions.</p>
+            </section>
+        }
+    }
+    else
+    {
+        <section class="setup-card connection-success" aria-labelledby="success-heading" tabindex="-1" @ref="_resultHeading">
+            <span class="eyebrow">CONNECTION VERIFIED</span>
+            <h1 id="success-heading">Keycloak is reachable.</h1>
+            <p class="lede">Your client authenticated successfully and the provisioner administrator role was found.</p>
+            <dl class="connection-details"><dt>Server</dt><dd>@Configuration.Authority</dd><dt>Realm</dt><dd>@Configuration.Realm</dd><dt>Client</dt><dd>@Configuration.ClientId</dd><dt>Administrator role</dt><dd>@Configuration.AdminRole</dd></dl>
+            <h2>Next: sign in as the setup operator</h2>
+            <p>The next step will take you to Keycloak to sign in as the platform administrator. After that, you’ll select your own administrator account and sign in with it to finish setup.</p>
+            <aside>SSO sign-in is the next part of setup to be added. This connection check has not signed you in or completed setup.</aside>
+            <div class="controls"><button class="secondary" @onclick="StartAgain">Check connection again</button></div>
+        </section>
+    }
+    <p role="status" aria-live="polite">@(_busy ? "Contacting Keycloak…" : "")</p>
+    <footer><a href="/simulation">Explore the provisioning simulation</a><p>The simulation is available independently of setup and creates no live resources.</p></footer>
+</main>
+
+@code {
+    private string _clientId = "";
+    private string _clientSecret = "";
+    private string? _error;
+    private bool _busy, _interactive, _connected, _focusResult;
+    private ElementReference _resultHeading;
+    private readonly CancellationTokenSource _lifetime = new();
+
+    protected override void OnInitialized() => _clientId = Configuration.ClientId;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { _interactive = true; StateHasChanged(); }
+        if (_focusResult) { _focusResult = false; await _resultHeading.FocusAsync(); }
+    }
+
+    private async Task Connect()
+    {
+        if (_busy || !_interactive) return;
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_clientId) || string.IsNullOrWhiteSpace(_clientSecret))
+        {
+            _clientSecret = "";
+            _error = "Enter your client ID and client secret.";
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Connection.CheckAsync(_clientId, _clientSecret, _lifetime.Token);
+            _connected = true;
+            _focusResult = true;
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (RegistryBootstrapStaffException ex)
+        {
+            _error = ex.Code switch
+            {
+                "registry.client_lookup_unauthorized" => "Keycloak did not allow this client check. Check the client ID, secret, and service-account permissions.",
+                "registry.client_missing" => "The configured client was not found in this realm.",
+                "registry.client_unavailable" => "Use an enabled, confidential Keycloak client for provisioning.",
+                "registry.role_missing" => "The provisioner administrator role is missing. Ask your realm administrator to create the configured role, then retry.",
+                "registry.role_lookup_unauthorized" => "The client authenticated but cannot inspect the administrator role. Ask your realm administrator to check its permissions.",
+                _ => "The connection could not be verified. Check the Keycloak configuration and availability, then retry."
+            };
+        }
+        catch (ArgumentException) { _error = "The client ID must match this deployment, and the Keycloak configuration must use a valid HTTPS address."; }
+        catch (Exception) { _error = "The connection could not be verified. Please retry."; }
+        finally { _clientSecret = ""; _busy = false; }
+    }
+
+    private void StartAgain() { _connected = false; _error = null; }
+    public void Dispose() { _clientSecret = ""; _lifetime.Cancel(); _lifetime.Dispose(); }
+}

@@ -1,0 +1,25 @@
+services:
+  provisioning:
+    build:
+      context: .
+    image: aetheric-provisioning:local
+    restart: unless-stopped
+    # Linux/Vulcan: only the host's reverse proxy can reach the HTTP listener.
+    network_mode: host
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://127.0.0.1:5180
+      ASPNETCORE_HTTPS_PORT: "443"
+      BootstrapConnection__Authority: ${KEYCLOAK_AUTHORITY:-}
+      BootstrapConnection__Realm: ${KEYCLOAK_REALM:-}
+      BootstrapConnection__ClientId: ${KEYCLOAK_CLIENT_ID:-}
+      BootstrapConnection__AdminRole: ${KEYCLOAK_ADMIN_ROLE:-provisioner-admin}
+    volumes:
+      - protection-keys:/home/app/.aspnet/DataProtection-Keys
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  protection-keys:

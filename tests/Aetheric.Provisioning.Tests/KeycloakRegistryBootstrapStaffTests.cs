@@ -39,6 +39,60 @@ public sealed class KeycloakRegistryBootstrapStaffTests
         });
     }
 
+    [Fact]
+    public async Task Connection_check_authenticates_and_reads_client_and_role_without_mutation_or_secret_lookup()
+    {
+        var handler = new Handler();
+        using var staff = Staff(handler);
+        await staff.CheckConnectionAsync();
+        Assert.Contains(handler.Requests, x => x.Path.EndsWith("/clients", StringComparison.Ordinal));
+        Assert.Contains(handler.Requests, x => x.Path.EndsWith("/roles/provisioner-admin", StringComparison.Ordinal));
+        Assert.All(handler.Requests, x => Assert.True(x.Method == HttpMethod.Get || x.Path.EndsWith("/token", StringComparison.Ordinal)));
+        Assert.DoesNotContain(handler.Requests, x => x.Path.Contains("client-secret", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(401, "registry.client_lookup_unauthorized")]
+    [InlineData(403, "registry.client_lookup_unauthorized")]
+    [InlineData(500, "registry.client_lookup_failed")]
+    [InlineData(200, "registry.client_missing", "[]")]
+    [InlineData(200, "registry.client_missing", "[{\"id\":\"other\",\"clientId\":\"other\"}]")]
+    [InlineData(200, "registry.client_unavailable", "[{\"id\":\"client\",\"clientId\":\"provisioner\",\"enabled\":false}]")]
+    [InlineData(200, "registry.client_unavailable", "[{\"id\":\"client\",\"clientId\":\"provisioner\",\"publicClient\":true}]")]
+    [InlineData(200, "registry.client_lookup_failed", "invalid json")]
+    public async Task Connection_check_rejects_unusable_clients_without_leaking_details(int status, string code, string? body = null)
+    {
+        var handler = new Handler { ClientStatus = (HttpStatusCode)status, ClientBody = body ?? "sensitive upstream error" };
+        using var staff = Staff(handler);
+        var error = await Assert.ThrowsAsync<RegistryBootstrapStaffException>(() => staff.CheckConnectionAsync());
+        Assert.Equal(code, error.Code);
+        Assert.DoesNotContain("sensitive", error.ToString());
+        Assert.DoesNotContain(handler.Requests, x => x.Path.Contains("/roles/", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Connection_check_rejects_invalid_credentials_before_admin_requests()
+    {
+        var handler = new Handler { TokenStatus = HttpStatusCode.Unauthorized };
+        using var staff = Staff(handler);
+        var error = await Assert.ThrowsAsync<RegistryBootstrapStaffException>(() => staff.CheckConnectionAsync());
+        Assert.Equal("registry.client_lookup_unauthorized", error.Code);
+        Assert.DoesNotContain("sensitive", error.ToString());
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Connection_check_requires_role_and_preserves_cancellation()
+    {
+        var handler = new Handler { RoleStatus = HttpStatusCode.NotFound };
+        using var staff = Staff(handler);
+        var error = await Assert.ThrowsAsync<RegistryBootstrapStaffException>(() => staff.CheckConnectionAsync());
+        Assert.Equal("registry.role_missing", error.Code);
+        using var ct = new CancellationTokenSource();
+        ct.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => staff.CheckConnectionAsync(ct.Token));
+    }
+
     [Theory]
     [InlineData(404, "registry.role_missing")]
     [InlineData(401, "registry.role_lookup_unauthorized")]
@@ -166,6 +220,9 @@ public sealed class KeycloakRegistryBootstrapStaffTests
     private sealed class Handler : HttpMessageHandler
     {
         public List<Request> Requests { get; } = [];
+        public HttpStatusCode TokenStatus { get; init; } = HttpStatusCode.OK;
+        public HttpStatusCode ClientStatus { get; init; } = HttpStatusCode.OK;
+        public string ClientBody { get; init; } = "[{\"id\":\"client\",\"clientId\":\"provisioner\",\"enabled\":true,\"publicClient\":false}]";
         public HttpStatusCode UserStatus { get; init; } = HttpStatusCode.OK;
         public HttpStatusCode AssignmentStatus { get; init; } = HttpStatusCode.NoContent;
         public HttpStatusCode RoleStatus { get; set; } = HttpStatusCode.OK;
@@ -179,9 +236,11 @@ public sealed class KeycloakRegistryBootstrapStaffTests
             var path = request.RequestUri!.AbsolutePath;
             Requests.Add(new(request.Method, path, request.Content is null ? "" : await request.Content.ReadAsStringAsync(ct)));
             if (path == "/realms/root/protocol/openid-connect/token")
-                return Json(HttpStatusCode.OK, "{\"access_token\":\"test-token\",\"expires_in\":300}");
+                return Json(TokenStatus, TokenStatus == HttpStatusCode.OK ? "{\"access_token\":\"test-token\",\"expires_in\":300}" : "sensitive upstream error");
             Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
             Assert.Equal("test-token", request.Headers.Authorization?.Parameter);
+            if (path == "/admin/realms/root/clients" && request.Method == HttpMethod.Get)
+                return Json(ClientStatus, ClientBody);
             if (path == "/admin/realms/root/users/operator" && request.Method == HttpMethod.Get)
                 return Json(UserStatus, UserStatus == HttpStatusCode.OK ? JsonSerializer.Serialize(new { id = Subject, enabled = Enabled }) : "sensitive upstream error");
             if (path == "/admin/realms/root/roles/provisioner-admin" && request.Method == HttpMethod.Get)

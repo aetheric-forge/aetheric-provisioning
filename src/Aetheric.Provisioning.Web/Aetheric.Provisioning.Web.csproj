@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup><ProjectReference Include="../Aetheric.Provisioning.Simulation/Aetheric.Provisioning.Simulation.csproj" />  <ProjectReference Include="../Aetheric.Provisioning.Application/Aetheric.Provisioning.Application.csproj" />
+    <ProjectReference Include="../Aetheric.Provisioning.Registry/Aetheric.Provisioning.Registry.csproj" />
   </ItemGroup>
 </Project>

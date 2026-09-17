@@ -45,7 +45,7 @@ dotnet run --project samples/Aetheric.Provisioning.Harness --configuration Relea
 dotnet run --project src/Aetheric.Provisioning.Web --configuration Release --no-build --urls http://localhost:5180
 ```
 
-Open `http://localhost:5180` for the Blazor workflow. No provider accounts or credentials are needed.
+Open `http://localhost:5180` for the setup landing page, or `http://localhost:5180/simulation` for the Blazor simulation workflow. No provider accounts or credentials are needed.
 
 1. Load the default public ADR Campus repository, selecting a branch, tag, or commit and the two YAML paths. Alternatively, use the bundled Decisions example for offline development.
 2. Edit deployment defaults and provide a parent identity/revision. Mark the capabilities available in the **simulated** parent context. The bundled example supplies this simulated context explicitly.
@@ -72,3 +72,7 @@ See [durable state and restart recovery](docs/durable-state.md) for the opt-in l
 | `tests/Aetheric.Provisioning.Tests` | Planning, ownership, failure/retry, state, cancellation, and secret-reference tests |
 
 See [M2 loading and review](docs/m2-loading-review.md) for current behavior, validation, and limitations, and [M1 architecture](docs/m1-foundation.md) for the foundation. The engine has no YAML, Blazor, hosting, or provider SDK dependencies.
+
+## Run on Vulcan with Docker
+
+See [Docker deployment](docs/docker.md) for the image build, Compose settings, and nginx configuration.
