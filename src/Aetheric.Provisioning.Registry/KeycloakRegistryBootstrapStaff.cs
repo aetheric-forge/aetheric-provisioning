@@ -76,6 +76,7 @@ public sealed class KeycloakRegistryBootstrapStaff : IRegistryBootstrapStaff, ID
         ValidateSubject(subjectId);
         if (!string.Equals(role, _adminRole, StringComparison.Ordinal))
             throw new RegistryBootstrapStaffException("registry.role_not_configured");
+        await VerifyAdminRoleAsync(ct);
         // Recheck immediately before the write, including on a resumed bootstrap attempt.
         if (!await PrincipalExistsAsync(subjectId, ct))
             throw new RegistryBootstrapStaffException("registry.principal_unavailable");
@@ -94,6 +95,28 @@ public sealed class KeycloakRegistryBootstrapStaff : IRegistryBootstrapStaff, ID
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (RegistryBootstrapStaffException) { throw; }
         catch (Exception) { throw new RegistryBootstrapStaffException("registry.assignment_failed"); }
+    }
+
+    private async Task VerifyAdminRoleAsync(CancellationToken ct)
+    {
+        try
+        {
+            var result = await _clerk.GetRoleAsync(_adminRole, ct);
+            if (result.Status != RegistryOperationStatus.Succeeded || result.Value is null)
+                throw new RegistryBootstrapStaffException(result.Status switch
+                {
+                    RegistryOperationStatus.NotFound => "registry.role_missing",
+                    RegistryOperationStatus.Unauthorized => "registry.role_lookup_unauthorized",
+                    _ => "registry.role_lookup_failed"
+                });
+            if (!string.Equals(result.Value.Name, _adminRole, StringComparison.Ordinal))
+                throw new RegistryBootstrapStaffException("registry.role_mismatch");
+            // The runtime projects only the role name; empty Permissions does not prove
+            // that the deployed role has no composites or elevated privileges.
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (RegistryBootstrapStaffException) { throw; }
+        catch (Exception) { throw new RegistryBootstrapStaffException("registry.role_lookup_failed"); }
     }
 
     private static void ValidateSubject(string subjectId)
