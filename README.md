@@ -30,6 +30,8 @@ The first concrete input is ADR Campus’s declarative Decisions Office definiti
 
 A Workbench provisioning abstraction and Redis backend now support registration and staging verification on an existing standalone Redis database. See [the standalone Workbench contract and acceptance host](docs/standalone-workbench.md). This path assumes no deployed Campus capabilities; the Blazor workflow remains simulated.
 
+See also [the Registry bootstrap foundation](docs/registry-bootstrap.md) for the persisted lifecycle around a sysadmin-created initial principal. Host authentication and the live Clerk adapter remain pending.
+
 ## Build and run
 
 Requires the .NET 10 SDK (the SDK policy is in `global.json`).
