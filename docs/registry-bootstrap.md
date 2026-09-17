@@ -14,9 +14,9 @@ Completion is durable and prevents further bootstrap assignments. The future hos
 
 ## Keycloak staff adapter
 
-`Aetheric.Provisioning.Registry.KeycloakRegistryBootstrapStaff` now implements the bootstrap staff seam using the runtime's actual `IExternalIdentityDirectory` and `IRegistryClerk` contracts and their Keycloak implementations. `external/runtime` is pinned to commit `a8aa02550c18a3d8a7908ebdf5267a2e4add1a12`. Only the identity provider, models, and supporting abstractions are referenced; no Campus implementation is referenced or deployed.
+`Aetheric.Provisioning.Registry.KeycloakRegistryBootstrapStaff` now implements the bootstrap staff seam using the runtime's actual `IExternalIdentityDirectory` and `IRegistryClerk` contracts and their Keycloak implementations. `external/runtime` is pinned to commit `e07976bf773bf31219f937157d720747be7cec99`. Only the identity provider, models, and supporting abstractions are referenced; no Campus implementation is referenced or deployed.
 
-Deployment must supply an existing, dedicated realm role for provisioner administration, along with the service-account client and its permissions. The adapter binds the client ID and derived realm issuer to the bootstrap settings and only accepts that configured role. Role ownership, meaning, and any composites are deployment responsibilities: the current Clerk has no role-inspection contract, so this slice does not create or adopt arbitrary roles. A missing role fails rather than being created. The role must not confer unintended Keycloak administration privileges.
+Deployment must supply an existing, dedicated realm role for provisioner administration, along with the service-account client and its permissions. The adapter binds the client ID and derived realm issuer to the bootstrap settings and only accepts that configured role. Before each assignment attempt, the adapter uses `IRegistryClerk.GetRoleAsync` to verify that the configured role exists and its returned name matches exactly. Missing, mismatched, unauthorized, or failed lookups block assignment with stable, redacted error codes. Role ownership, meaning, and any composites remain deployment responsibilities: the runtime lookup currently projects only the role name, and its empty `Permissions` collection is not evidence of absent privileges. This slice does not create or adopt arbitrary roles. A missing role fails rather than being created. The role must not confer unintended Keycloak administration privileges.
 
 ```csharp
 using var staff = new KeycloakRegistryBootstrapStaff(settings, keycloakOptions);
@@ -29,7 +29,7 @@ Principal lookup is by immutable Keycloak subject ID, not username or email. Mis
 
 The sysadmin must select a human principal. The current runtime identity projection does not expose Keycloak's service-account linkage, so this adapter cannot independently distinguish a service-account user from a human user; the SSO completion requirement remains essential.
 
-Tests exercise the real runtime provider classes with controlled HTTP responses, including lookup, assignment, retries, missing/disabled/mismatched users, authorization failures, wrong deployment bindings, cancellation, and response redaction. These are HTTP contract tests, not evidence of a run against deployed Keycloak. Role mappings use the [Keycloak Admin REST API](https://www.keycloak.org/docs-api/latest/rest-api/index.html#_role_mapper_resource).
+Tests exercise the real runtime provider classes with controlled HTTP responses, including principal and role lookup, role mismatch and malformed responses, assignment, retries, missing/disabled/mismatched users, authorization failures, wrong deployment bindings, cancellation, and response redaction. These are HTTP contract tests, not evidence of a run against deployed Keycloak. Role mappings use the [Keycloak Admin REST API](https://www.keycloak.org/docs-api/latest/rest-api/index.html#_role_mapper_resource).
 
 ## Build dependency
 

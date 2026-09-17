@@ -40,6 +40,51 @@ public sealed class KeycloakRegistryBootstrapStaffTests
     }
 
     [Theory]
+    [InlineData(404, "registry.role_missing")]
+    [InlineData(401, "registry.role_lookup_unauthorized")]
+    [InlineData(403, "registry.role_lookup_unauthorized")]
+    [InlineData(500, "registry.role_lookup_failed")]
+    [InlineData(200, "registry.role_mismatch", "{\"name\":\"another-role\"}")]
+    [InlineData(200, "registry.role_lookup_failed", "{}")]
+    [InlineData(200, "registry.role_lookup_failed", "invalid json")]
+    [InlineData(200, "registry.role_lookup_failed", "null")]
+    public async Task Role_inspection_errors_prevent_assignment_and_redact_provider_details(
+        int status, string code, string? body = null)
+    {
+        var handler = new Handler { RoleStatus = (HttpStatusCode)status, RoleBody = body ?? "sensitive upstream error" };
+        using var staff = Staff(handler);
+        var error = await Assert.ThrowsAsync<RegistryBootstrapStaffException>(() =>
+            staff.EnsureAdminAuthorityAsync("operator", Settings.AdminRole, default));
+        Assert.Equal(code, error.Code);
+        Assert.DoesNotContain("sensitive", error.ToString());
+        Assert.DoesNotContain(handler.Requests, x => x.Path.EndsWith("/role-mappings/realm", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Retry_reinspects_role_before_repeating_assignment()
+    {
+        var handler = new Handler();
+        using var staff = Staff(handler);
+        await staff.EnsureAdminAuthorityAsync("operator", Settings.AdminRole, default);
+        handler.RoleStatus = HttpStatusCode.NotFound;
+        var error = await Assert.ThrowsAsync<RegistryBootstrapStaffException>(() =>
+            staff.EnsureAdminAuthorityAsync("operator", Settings.AdminRole, default));
+        Assert.Equal("registry.role_missing", error.Code);
+        Assert.Single(handler.Requests, x => x.Path.EndsWith("/role-mappings/realm", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Cancellation_during_role_inspection_is_preserved()
+    {
+        using var ct = new CancellationTokenSource();
+        var handler = new Handler { OnRoleLookup = ct.Cancel };
+        using var staff = Staff(handler);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            staff.EnsureAdminAuthorityAsync("operator", Settings.AdminRole, ct.Token));
+        Assert.DoesNotContain(handler.Requests, x => x.Path.EndsWith("/role-mappings/realm", StringComparison.Ordinal));
+    }
+
+    [Theory]
     [InlineData(404, true)]
     [InlineData(200, false)]
     public async Task Missing_or_disabled_principal_cannot_receive_authority(int status, bool enabled)
@@ -123,6 +168,9 @@ public sealed class KeycloakRegistryBootstrapStaffTests
         public List<Request> Requests { get; } = [];
         public HttpStatusCode UserStatus { get; init; } = HttpStatusCode.OK;
         public HttpStatusCode AssignmentStatus { get; init; } = HttpStatusCode.NoContent;
+        public HttpStatusCode RoleStatus { get; set; } = HttpStatusCode.OK;
+        public string RoleBody { get; init; } = "{\"id\":\"role-id\",\"name\":\"provisioner-admin\"}";
+        public Action? OnRoleLookup { get; init; }
         public bool Enabled { get; init; } = true;
         public string Subject { get; init; } = "operator";
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
@@ -137,7 +185,11 @@ public sealed class KeycloakRegistryBootstrapStaffTests
             if (path == "/admin/realms/root/users/operator" && request.Method == HttpMethod.Get)
                 return Json(UserStatus, UserStatus == HttpStatusCode.OK ? JsonSerializer.Serialize(new { id = Subject, enabled = Enabled }) : "sensitive upstream error");
             if (path == "/admin/realms/root/roles/provisioner-admin" && request.Method == HttpMethod.Get)
-                return Json(HttpStatusCode.OK, "{\"id\":\"role-id\",\"name\":\"provisioner-admin\"}");
+            {
+                OnRoleLookup?.Invoke();
+                ct.ThrowIfCancellationRequested();
+                return Json(RoleStatus, RoleBody);
+            }
             if (path == "/admin/realms/root/users/operator/role-mappings/realm" && request.Method == HttpMethod.Post)
                 return Json(AssignmentStatus, "sensitive upstream error");
             throw new InvalidOperationException("Unexpected request.");
