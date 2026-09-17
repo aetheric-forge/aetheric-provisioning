@@ -143,6 +143,7 @@
       "aetheric.provisioning.persistence": {
         "type": "Project",
         "dependencies": {
+          "Aetheric.Provisioning.Application": "[1.0.0, )",
           "Aetheric.Provisioning.Engine": "[1.0.0, )"
         }
       },
