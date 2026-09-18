@@ -39,60 +39,6 @@ public sealed class KeycloakRegistryBootstrapStaffTests
         });
     }
 
-    [Fact]
-    public async Task Connection_check_authenticates_and_reads_client_and_role_without_mutation_or_secret_lookup()
-    {
-        var handler = new Handler();
-        using var staff = Staff(handler);
-        await staff.CheckConnectionAsync();
-        Assert.Contains(handler.Requests, x => x.Path.EndsWith("/clients", StringComparison.Ordinal));
-        Assert.Contains(handler.Requests, x => x.Path.EndsWith("/roles/provisioner-admin", StringComparison.Ordinal));
-        Assert.All(handler.Requests, x => Assert.True(x.Method == HttpMethod.Get || x.Path.EndsWith("/token", StringComparison.Ordinal)));
-        Assert.DoesNotContain(handler.Requests, x => x.Path.Contains("client-secret", StringComparison.Ordinal));
-    }
-
-    [Theory]
-    [InlineData(401, "registry.client_lookup_unauthorized")]
-    [InlineData(403, "registry.client_lookup_unauthorized")]
-    [InlineData(500, "registry.client_lookup_failed")]
-    [InlineData(200, "registry.client_missing", "[]")]
-    [InlineData(200, "registry.client_missing", "[{\"id\":\"other\",\"clientId\":\"other\"}]")]
-    [InlineData(200, "registry.client_unavailable", "[{\"id\":\"client\",\"clientId\":\"provisioner\",\"enabled\":false}]")]
-    [InlineData(200, "registry.client_unavailable", "[{\"id\":\"client\",\"clientId\":\"provisioner\",\"publicClient\":true}]")]
-    [InlineData(200, "registry.client_lookup_failed", "invalid json")]
-    public async Task Connection_check_rejects_unusable_clients_without_leaking_details(int status, string code, string? body = null)
-    {
-        var handler = new Handler { ClientStatus = (HttpStatusCode)status, ClientBody = body ?? "sensitive upstream error" };
-        using var staff = Staff(handler);
-        var error = await Assert.ThrowsAsync<RegistryBootstrapStaffException>(() => staff.CheckConnectionAsync());
-        Assert.Equal(code, error.Code);
-        Assert.DoesNotContain("sensitive", error.ToString());
-        Assert.DoesNotContain(handler.Requests, x => x.Path.Contains("/roles/", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public async Task Connection_check_rejects_invalid_credentials_before_admin_requests()
-    {
-        var handler = new Handler { TokenStatus = HttpStatusCode.Unauthorized };
-        using var staff = Staff(handler);
-        var error = await Assert.ThrowsAsync<RegistryBootstrapStaffException>(() => staff.CheckConnectionAsync());
-        Assert.Equal("registry.client_lookup_unauthorized", error.Code);
-        Assert.DoesNotContain("sensitive", error.ToString());
-        Assert.Single(handler.Requests);
-    }
-
-    [Fact]
-    public async Task Connection_check_requires_role_and_preserves_cancellation()
-    {
-        var handler = new Handler { RoleStatus = HttpStatusCode.NotFound };
-        using var staff = Staff(handler);
-        var error = await Assert.ThrowsAsync<RegistryBootstrapStaffException>(() => staff.CheckConnectionAsync());
-        Assert.Equal("registry.role_missing", error.Code);
-        using var ct = new CancellationTokenSource();
-        ct.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => staff.CheckConnectionAsync(ct.Token));
-    }
-
     [Theory]
     [InlineData(404, "registry.role_missing")]
     [InlineData(401, "registry.role_lookup_unauthorized")]

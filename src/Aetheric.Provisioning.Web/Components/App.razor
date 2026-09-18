@@ -9,7 +9,7 @@
 </head>
 <body>
     <Router AppAssembly="typeof(App).Assembly">
-        <Found Context="routeData"><RouteView RouteData="routeData" /></Found>
+        <Found Context="routeData"><Microsoft.AspNetCore.Components.Authorization.AuthorizeRouteView RouteData="routeData"><NotAuthorized><main><h1>Sign in to continue setup</h1><a href="/setup">Return to connection setup</a></main></NotAuthorized></Microsoft.AspNetCore.Components.Authorization.AuthorizeRouteView></Found>
         <NotFound><main><h1>Page not found</h1><a href="/">Return to provisioning</a></main></NotFound>
     </Router>
     <script src="_framework/blazor.web.js"></script>

@@ -11,8 +11,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
-RUN mkdir -p /home/app/.aspnet/DataProtection-Keys \
-    && chown -R app:app /home/app/.aspnet
+RUN mkdir -p /home/app/.aspnet/DataProtection-Keys /home/app/.local/share/aetheric/bootstrap \
+    && chown -R app:app /home/app/.aspnet /home/app/.local
 COPY --from=build /app/publish .
 USER $APP_UID
 ENTRYPOINT ["dotnet", "Aetheric.Provisioning.Web.dll"]

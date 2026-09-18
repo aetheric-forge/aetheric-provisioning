@@ -6,12 +6,29 @@ using Aetheric.Provisioning.Simulation;
 using Aetheric.Provisioning.Web.Components;
 using Aetheric.Provisioning.Web;
 
-var builder = WebApplication.CreateBuilder(args);
+var initializeBootstrap = args.Contains("--initialize-bootstrap", StringComparer.Ordinal);
+var builder = WebApplication.CreateBuilder(args.Where(x => x != "--initialize-bootstrap").ToArray());
 // Trust only the framework's default loopback proxies. Vulcan's nginx connects locally.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
-builder.Services.AddSingleton(builder.Configuration.GetSection("BootstrapConnection")
-    .Get<BootstrapConnectionConfiguration>() ?? new());
+var connectionConfiguration = builder.Configuration.GetSection("BootstrapConnection")
+    .Get<BootstrapConnectionConfiguration>() ?? new();
+if (initializeBootstrap)
+{
+    using var validation = new Aetheric.Provisioning.Registry.KeycloakAdministratorCreator(
+        connectionConfiguration.Options(connectionConfiguration.ClientId, "configuration-validation"), connectionConfiguration.AdminRole);
+    await new Aetheric.Provisioning.Persistence.FileRegistryBootstrapStore(connectionConfiguration.StateDirectory)
+        .InitializeAsync(connectionConfiguration.Settings);
+    Console.WriteLine("Initialized bootstrap deployment state. Existing state is never replaced.");
+    return;
+}
+builder.Services.AddSingleton<IRegistryBootstrapStore>(_ =>
+    new Aetheric.Provisioning.Persistence.FileRegistryBootstrapStore(connectionConfiguration.StateDirectory));
+builder.Services.AddSingleton<ISetupRegistryClients, SetupRegistryClients>();
+builder.Services.AddScoped<SetupBootstrap>();
+var administratorSignIn = new AdministratorSignInConfiguration(connectionConfiguration, builder.Environment.IsDevelopment());
+builder.Services.AddSingleton(connectionConfiguration);
+builder.AddSetupAuthentication(connectionConfiguration, administratorSignIn);
 builder.Services.AddScoped<BootstrapConnection>();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddSingleton(_ => PublicGitHubSource.CreateHttpClient());
@@ -33,6 +50,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
+app.MapSetupAuthentication(administratorSignIn);
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.Run();

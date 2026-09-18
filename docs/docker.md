@@ -11,10 +11,15 @@ From the provisioning repository on Vulcan (Linux, Docker with Compose v2):
 ```sh
 git submodule update --init --recursive
 cp .env.example .env
-# Edit .env with the Keycloak server base URL, realm, and client ID.
-docker compose up -d --build
+# Edit .env with the Keycloak destination, client ID, public HTTPS origin, and Forge role.
+docker compose build
+# First deployment only: create the private durable bootstrap record.
+docker compose run --rm provisioning --initialize-bootstrap
+docker compose up -d
 docker compose logs -f provisioning
 ```
+
+The client’s service account must have the `realm-management` client role `realm-admin`, and its role scope mappings must allow that role into the issued access token. `KEYCLOAK_ADMIN_ROLE` is no longer used by connection setup. No separate human-administrator realm role is needed for the connection check. Account creation ensures the dedicated `FORGE_ADMIN_ROLE` (default `forge-admin`) exists as a non-composite realm role.
 
 Enter the Keycloak client secret in the setup page; it is not an image argument or Compose setting. Missing Keycloak settings leave the app on its deployment-configuration screen.
 
@@ -35,7 +40,9 @@ location / {
 
 Use a dedicated hostname with the app at `/`, rather than a subpath. Open that hostname over HTTPS. The app consumes forwarded scheme/address headers only from default loopback trusted proxies; it does not trust arbitrary remote proxies. This recipe assumes nginx can reach host loopback (host process or host-network container). A bridge-network proxy needs a separately configured trusted proxy address and network arrangement.
 
-The `protection-keys` volume preserves ASP.NET Core data-protection keys across container replacement. These keys are sensitive and the volume should be restricted to this application. They do not persist Keycloak credentials or bootstrap completion. The current setup pages perform a read-only client/role check; operator SSO and the administrator handoff remain pending. The simulation stays at `/simulation`.
+The `protection-keys` volume preserves ASP.NET Core data-protection keys. The separate `bootstrap-state` volume stores the deployment binding, creation/assignment progress, selected user ID, and completion checkpoint. Restrict and back up both volumes. Neither stores the client secret or account password. Upgrades use `docker compose up -d --build` without reinitialization. Never delete the state volume to reopen setup.
+
+Setup proceeds from the verified client connection to a new Forge administrator account, then to that account’s own Keycloak sign-in. No platform-admin UI login is required. Set `PROVISIONER_PUBLIC_ORIGIN` to the exact public HTTPS origin, with no path, query, or fragment. Sign-in adds the exact callback and the Forge role’s client scope without replacing other settings. The standard Keycloak realm-role mapper must emit the administrator role in the access token. The simulation stays at `/simulation`. See [bootstrap behavior and recovery](registry-bootstrap.md).
 
 ## Build or run without Compose
 
@@ -49,10 +56,15 @@ docker run -d --name aetheric-provisioning \
   -e BootstrapConnection__Authority=https://sso.example.com \
   -e BootstrapConnection__Realm=root \
   -e BootstrapConnection__ClientId=provisioner \
-  -e BootstrapConnection__AdminRole=provisioner-admin \
+  -e BootstrapConnection__PublicOrigin=https://provisioner.example.com \
+  -e BootstrapConnection__AdminRole=forge-admin \
+  -e BootstrapConnection__StateDirectory=/home/app/.local/share/aetheric/bootstrap \
+  -v provisioning-bootstrap-state:/home/app/.local/share/aetheric/bootstrap \
   -v provisioning-protection-keys:/home/app/.aspnet/DataProtection-Keys \
   aetheric-provisioning:local
 ```
+
+Before starting the standalone container for the first time, run the same image with the same environment and volumes using `docker run --rm` (without `-d`, `--name`, or `--restart`) and append `--initialize-bootstrap` after the image name. Initialization is an explicit one-time operation.
 
 If Keycloak uses a private CA, the container must trust that CA before connection checks will succeed. Do not disable TLS verification. No CA certificate or live deployment secret is bundled into this image.
 

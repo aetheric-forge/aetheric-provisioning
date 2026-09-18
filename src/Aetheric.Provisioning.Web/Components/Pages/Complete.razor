@@ -1,0 +1,13 @@
+@page "/setup/complete"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = SetupAuthentication.AdminPolicy)]
+@using Aetheric.Provisioning.Web
+@using Microsoft.AspNetCore.Components.Forms
+<PageTitle>Forge administrator ready</PageTitle>
+<main class="setup-shell">
+    <header><span class="eyebrow">AETHERIC FORGE / PROVISIONING</span><span class="badge">Administrator verified</span></header>
+    <h1>Your Forge administrator is ready.</h1>
+    <p class="lede">You’ve signed in successfully with your selected administrator account. Initial administrator setup is complete.</p>
+    <p>The provisioner has cleared this session’s client secret. Administrator creation is now closed for this deployment.</p>
+    <a href="/simulation">Explore the provisioning simulation</a>
+    <form method="post" action="/setup/connection/end"><AntiforgeryToken /><button class="secondary">Sign out</button></form>
+</main>
