@@ -166,6 +166,9 @@ public sealed class KeycloakRegistryBootstrapStaffTests
     private sealed class Handler : HttpMessageHandler
     {
         public List<Request> Requests { get; } = [];
+        public HttpStatusCode TokenStatus { get; init; } = HttpStatusCode.OK;
+        public HttpStatusCode ClientStatus { get; init; } = HttpStatusCode.OK;
+        public string ClientBody { get; init; } = "[{\"id\":\"client\",\"clientId\":\"provisioner\",\"enabled\":true,\"publicClient\":false}]";
         public HttpStatusCode UserStatus { get; init; } = HttpStatusCode.OK;
         public HttpStatusCode AssignmentStatus { get; init; } = HttpStatusCode.NoContent;
         public HttpStatusCode RoleStatus { get; set; } = HttpStatusCode.OK;
@@ -179,9 +182,11 @@ public sealed class KeycloakRegistryBootstrapStaffTests
             var path = request.RequestUri!.AbsolutePath;
             Requests.Add(new(request.Method, path, request.Content is null ? "" : await request.Content.ReadAsStringAsync(ct)));
             if (path == "/realms/root/protocol/openid-connect/token")
-                return Json(HttpStatusCode.OK, "{\"access_token\":\"test-token\",\"expires_in\":300}");
+                return Json(TokenStatus, TokenStatus == HttpStatusCode.OK ? "{\"access_token\":\"test-token\",\"expires_in\":300}" : "sensitive upstream error");
             Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
             Assert.Equal("test-token", request.Headers.Authorization?.Parameter);
+            if (path == "/admin/realms/root/clients" && request.Method == HttpMethod.Get)
+                return Json(ClientStatus, ClientBody);
             if (path == "/admin/realms/root/users/operator" && request.Method == HttpMethod.Get)
                 return Json(UserStatus, UserStatus == HttpStatusCode.OK ? JsonSerializer.Serialize(new { id = Subject, enabled = Enabled }) : "sensitive upstream error");
             if (path == "/admin/realms/root/roles/provisioner-admin" && request.Method == HttpMethod.Get)

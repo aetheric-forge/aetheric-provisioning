@@ -46,7 +46,7 @@ public sealed class FileRegistryBootstrapStore(string directory) : IRegistryBoot
             || issuer.Scheme != "https" || !string.IsNullOrEmpty(issuer.UserInfo)
             || !string.IsNullOrEmpty(issuer.Query) || !string.IsNullOrEmpty(issuer.Fragment)
             || string.IsNullOrWhiteSpace(state.Settings.ClientId) || string.IsNullOrWhiteSpace(state.Settings.AdminRole)
-            || (state.Phase == RegistryBootstrapPhase.AwaitingPrincipal ? state.SubjectId is not null : string.IsNullOrWhiteSpace(state.SubjectId)))
+            || (state.Phase is RegistryBootstrapPhase.AwaitingPrincipal or RegistryBootstrapPhase.CreatingPrincipal ? state.SubjectId is not null : string.IsNullOrWhiteSpace(state.SubjectId)))
             throw new InvalidDataException("Invalid bootstrap state.");
     }
 }

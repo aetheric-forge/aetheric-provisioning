@@ -1,4 +1,4 @@
-@page "/"
+@page "/simulation"
 @rendermode InteractiveServer
 @inject Aetheric.Provisioning.Application.ProvisioningReview Review
 @using System.Collections.Immutable
@@ -95,7 +95,7 @@
         </section>
     }
     <p role="status" aria-live="polite">@_status</p>
-    <footer>Separate institution requirements, deployment bindings, and parent context. Live adapters follow in M3.</footer>
+    <footer><a href="/setup">Return to setup</a><p>Separate institution requirements, deployment bindings, and parent context. Live adapters follow in M3.</p></footer>
 </main>
 
 @code {
