@@ -79,6 +79,19 @@ public interface ISecretStore
     Task<string> ReadAsync(SecretReference reference, CancellationToken cancellationToken);
 }
 
+// Root-level admin access to existing infrastructure (Redis, Mongo, RabbitMQ, Postgres, ...) the
+// provisioner authenticates with in order to create child resources. Distinct from ISecretStore,
+// which generates and never replaces secrets for resources the engine itself creates - a root
+// credential is supplied by the operator for infrastructure that already exists, and must support
+// an explicit, deliberate overwrite (correcting a typo, rotating a password).
+public sealed record RootCredential(string Host, int Port, string? Username, string Password);
+public interface IRootCredentialStore
+{
+    // Always overwrites; this is not get-or-create.
+    Task SetAsync(string system, RootCredential credential, CancellationToken cancellationToken);
+    Task<RootCredential?> TryReadAsync(string system, CancellationToken cancellationToken);
+}
+
 // A shared store can serialize a complete read/execute/checkpoint cycle across engines/processes.
 public interface IRunExecutionLock
 {
