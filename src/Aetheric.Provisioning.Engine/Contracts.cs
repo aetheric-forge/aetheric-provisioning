@@ -84,7 +84,16 @@ public interface ISecretStore
 // which generates and never replaces secrets for resources the engine itself creates - a root
 // credential is supplied by the operator for infrastructure that already exists, and must support
 // an explicit, deliberate overwrite (correcting a typo, rotating a password).
-public sealed record RootCredential(string Host, int Port, string? Username, string Password);
+public sealed record MongoRootOptions(string AuthDatabase = "admin", bool DirectConnection = false);
+public sealed record PostgresRootOptions(string Database = "postgres");
+public sealed record RabbitMqRootOptions(string Scheme = "http", string BasePath = "/");
+public sealed record RootCredential(string Host, int Port, string? Username, string Password)
+{
+    public MongoRootOptions? Mongo { get; init; }
+    public PostgresRootOptions? Postgres { get; init; }
+    public RabbitMqRootOptions? RabbitMq { get; init; }
+    public override string ToString() => "RootCredential { Password = [redacted] }";
+}
 public interface IRootCredentialStore
 {
     // Always overwrites; this is not get-or-create.

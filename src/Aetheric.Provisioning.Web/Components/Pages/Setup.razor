@@ -59,8 +59,8 @@
             <h1 id="success-heading">Keycloak is reachable.</h1>
             <p class="lede">Your service account authenticated with realm-admin permission and successfully accessed the Keycloak Admin API.</p>
             <dl class="connection-details"><dt>Server</dt><dd>@Configuration.Authority</dd><dt>Realm</dt><dd>@Configuration.Realm</dd><dt>Client</dt><dd>@Configuration.ClientId</dd><dt>Service-account permission</dt><dd>realm-management / realm-admin</dd></dl>
-            <h2>Next: choose your Forge administrator</h2>
-            <p>Choose an existing Keycloak account or create a new one, then sign in with it to finish setup.</p>
+            <h2>Next: continue administrator setup</h2>
+            <p>Choose or create your Forge administrator, then sign in to connect your infrastructure. If your administrator is already selected, you’ll resume with that account.</p>
             @if (SignIn.Enabled)
             {
                 <p>Your verified connection authorizes administrator setup. When you sign in with your chosen account, the provisioner enables browser sign-in for this client and registers its callback.</p>

@@ -76,3 +76,5 @@ See [M2 loading and review](docs/m2-loading-review.md) for current behavior, val
 ## Run on Vulcan with Docker
 
 See [Docker deployment](docs/docker.md) for the image build, Compose settings, and nginx configuration.
+
+See [infrastructure bootstrap](docs/infrastructure-bootstrap.md) for the final four-service credential setup page, storage configuration, and integration tests.
