@@ -34,3 +34,12 @@ docker compose -p aetheric-root-tests -f tests/infrastructure/compose.yaml down 
 ```
 
 Fixture ports are loopback-only and passwords are disposable test values. The integration tests check successful root authentication and rejection of incorrect passwords. HTTP tests cover the authenticated four-service save flow, rejection of edited settings, and completion closing further saves.
+
+## Internal HTTPS trust
+
+The build and runtime images install the public Aetheric Forge step-ca root from `docker/certs/aetheric-forge-root-ca.crt` into the operating-system trust store. RabbitMQ management URLs may use HTTPS with normal certificate-chain and hostname verification. This also enables trust for other HTTPS clients in the provisioner. No private CA key is copied into the image.
+
+Source: infrastructure repository `platform/core/step-ca/certs/dev/root_ca.crt`.
+SHA-256 fingerprint: `55:3C:11:BB:DA:E4:DC:EC:00:22:12:B2:6B:E4:03:16:9D:1E:CE:A8:D3:B2:D2:DF:D2:CF:9B:C9:C7:D9:74:7C`.
+
+When the root changes, replace the public certificate and rebuild/recreate the provisioner container. Certificate trust is installed at build time so the application continues to run as its non-root user. Database TLS configuration controls remain deferred.

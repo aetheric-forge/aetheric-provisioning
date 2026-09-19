@@ -1,4 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
+COPY docker/certs/*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 WORKDIR /src
 COPY . .
 # The repository's local SDK pin has no published MCR image. Pin the container SDK independently.
@@ -8,6 +10,8 @@ RUN dotnet publish src/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.cspro
     --configuration Release --no-restore --output /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+COPY docker/certs/*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
