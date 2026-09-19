@@ -69,6 +69,8 @@ public static class InfrastructureEndpoints
     private static string Message(string code) => code switch
     {
         "verified" => "Connection and administrator access verified.",
+        "dns" => "The provisioner could not resolve the service hostname. Check DNS from inside its container.",
+        "tls" => "HTTPS certificate verification or the TLS handshake failed. Check the container trust store, server certificate chain, and hostname.",
         "invalid" => "Check the connection fields.",
         "authentication" => "The server rejected these credentials.",
         "permission" => "The account connected but does not have the required administrator access.",

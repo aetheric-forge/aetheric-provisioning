@@ -43,3 +43,5 @@ Source: infrastructure repository `platform/core/step-ca/certs/dev/root_ca.crt`.
 SHA-256 fingerprint: `55:3C:11:BB:DA:E4:DC:EC:00:22:12:B2:6B:E4:03:16:9D:1E:CE:A8:D3:B2:D2:DF:D2:CF:9B:C9:C7:D9:74:7C`.
 
 When the root changes, replace the public certificate and rebuild/recreate the provisioner container. Certificate trust is installed at build time so the application continues to run as its non-root user. Database TLS configuration controls remain deferred.
+
+For connection-test diagnostics, run `docker compose logs --since=5m provisioning` after retrying a test. The `Aetheric.Provisioning.Infrastructure.RootConnectionValidator` category reports failure codes, exception type names, HTTP transport error categories, socket error codes, and the RabbitMQ `/api/whoami` HTTP status. It deliberately excludes raw exception messages, credentials, request headers, and response bodies. DNS and TLS failures also receive specific UI messages. A successful curl check should be compared from inside the provisioner container, against the authenticated `/api/whoami` endpoint, rather than only the management landing page.

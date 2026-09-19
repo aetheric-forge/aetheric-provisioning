@@ -1,4 +1,7 @@
 using System.Net;
+using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -11,9 +14,27 @@ using StackExchange.Redis;
 
 namespace Aetheric.Provisioning.Infrastructure;
 
-public sealed class RootConnectionValidator : IRootConnectionValidator
+public sealed class RootConnectionValidator(ILogger<RootConnectionValidator>? logger = null) : IRootConnectionValidator
 {
+    private readonly ILogger<RootConnectionValidator> _logger = logger ?? NullLogger<RootConnectionValidator>.Instance;
     public async Task<ConnectionCheck> TestAsync(string system, RootCredential credential, CancellationToken ct)
+    {
+        using var scope = _logger.BeginScope("Connection check {CheckId} {Service}", Guid.NewGuid().ToString("N"),
+            InfrastructureConnections.Systems.Contains(system) ? system : "invalid");
+        var result = await TestCoreAsync(system, credential, ct);
+        if (!result.Succeeded) _logger.LogWarning("Connection check failed: {Code}", result.Code);
+        return result;
+    }
+    // Deliberately exclude exception messages, URLs, headers, bodies and credentials.
+    private bool LogFailure(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+            _logger.LogWarning("Connection exception {ExceptionType}; HTTP error {HttpError}; socket error {SocketError}",
+                current.GetType().Name, current is HttpRequestException http ? http.HttpRequestError.ToString() : "none",
+                current is SocketException socket ? socket.SocketErrorCode.ToString() : "none");
+        return false;
+    }
+    private async Task<ConnectionCheck> TestCoreAsync(string system, RootCredential credential, CancellationToken ct)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(TimeSpan.FromSeconds(10));
@@ -29,6 +50,10 @@ public sealed class RootConnectionValidator : IRootConnectionValidator
                 _ => new(false, "invalid")
             };
         }
+        catch (Exception ex) when (LogFailure(ex)) { throw; }
+        catch (HttpRequestException ex) { return new(false, ex.HttpRequestError switch
+        { HttpRequestError.NameResolutionError => "dns", HttpRequestError.SecureConnectionError => "tls", _ => "unreachable" }); }
+        catch (JsonException) { return new(false, "management_api"); }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (OperationCanceledException) { return new(false, "timeout"); }
         catch (TimeoutException) { return new(false, "timeout"); }
@@ -69,7 +94,7 @@ public sealed class RootConnectionValidator : IRootConnectionValidator
         return ConnectionCheck.Verified;
     }
 
-    private static async Task<ConnectionCheck> RabbitAsync(RootCredential credential, CancellationToken ct)
+    private async Task<ConnectionCheck> RabbitAsync(RootCredential credential, CancellationToken ct)
     {
         var options = credential.RabbitMq!;
         var origin = new UriBuilder(options.Scheme, credential.Host, credential.Port, options.BasePath).Uri;
@@ -78,12 +103,15 @@ public sealed class RootConnectionValidator : IRootConnectionValidator
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes(credential.Username + ":" + credential.Password)));
         using var response = await http.SendAsync(request, ct);
+        _logger.LogInformation("RabbitMQ GET api/whoami returned HTTP {StatusCode}", (int)response.StatusCode);
         if (response.StatusCode == HttpStatusCode.Unauthorized) return new(false, "authentication");
         if (response.StatusCode == HttpStatusCode.Forbidden) return new(false, "permission");
         if (!response.IsSuccessStatusCode) return new(false, "management_api");
         using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
         var root = json.RootElement;
-        if (!root.TryGetProperty("name", out var name) || name.GetString() != credential.Username) return new(false, "authentication");
+        if (root.ValueKind != JsonValueKind.Object) return new(false, "management_api");
+        if (!root.TryGetProperty("name", out var name) || name.ValueKind != JsonValueKind.String) return new(false, "management_api");
+        if (name.GetString() != credential.Username) return new(false, "authentication");
         if (!root.TryGetProperty("tags", out var tags)) return new(false, "permission");
         var isAdmin = tags.ValueKind == JsonValueKind.Array
             ? tags.EnumerateArray().Any(x => x.ValueKind == JsonValueKind.String && x.GetString() == "administrator")

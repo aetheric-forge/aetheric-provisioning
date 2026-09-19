@@ -4,11 +4,39 @@ using Aetheric.Provisioning.Persistence;
 using Aetheric.Provisioning.Web;
 using Microsoft.AspNetCore.DataProtection;
 using Xunit;
+using Microsoft.Extensions.Logging;
+using Aetheric.Provisioning.Infrastructure;
 
 namespace Aetheric.Provisioning.Tests;
 
 public sealed class InfrastructureTests
 {
+    [Fact]
+    public async Task Diagnostics_do_not_log_credentials_or_input_values()
+    {
+        var logger = new RecordingLogger();
+        var validator = new RootConnectionValidator(logger);
+        var result = await validator.TestAsync("rabbitmq", new("invalid-secret-host/",443,"secret-user","secret-password"),default);
+        Assert.False(result.Succeeded);
+        var output = string.Join("\n",logger.Messages);
+        Assert.Contains("ArgumentException",output);
+        Assert.Contains("invalid",output);
+        Assert.DoesNotContain("secret-host",output);
+        Assert.DoesNotContain("secret-user",output);
+        Assert.DoesNotContain("secret-password",output);
+    }
+    private sealed class RecordingLogger : ILogger<RootConnectionValidator>
+    {
+        public List<string> Messages { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel level) => true;
+        public void Log<TState>(LogLevel level, EventId id, TState state, Exception? exception, Func<TState,Exception?,string> formatter)
+        {
+            Assert.Null(exception);
+            Messages.Add(formatter(state,exception));
+        }
+    }
+
     [Fact]
     public void Receipts_bind_every_option_and_session_and_can_be_consumed()
     {
