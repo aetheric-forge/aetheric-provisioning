@@ -22,7 +22,18 @@ if (initializeBootstrap)
     Console.WriteLine("Initialized bootstrap deployment state. Existing state is never replaced.");
     return;
 }
-builder.Services.AddProvisioningBootstrap(builder.Configuration, connectionConfiguration);
+// The library only registers UI/orchestration - this sample supplies the file-based storage and
+// validation backends itself, exactly the seam AddProvisioningBootstrap exists to keep open for a
+// different host to fill differently.
+builder.Services.AddSingleton<IRegistryBootstrapStore>(_ =>
+    new Aetheric.Provisioning.Persistence.FileRegistryBootstrapStore(connectionConfiguration.StateDirectory));
+builder.Services.AddSingleton<IInfrastructureStateStore>(_ =>
+    new Aetheric.Provisioning.Persistence.FileInfrastructureStateStore(connectionConfiguration.StateDirectory));
+builder.Services.AddSingleton<IRootCredentialStore>(_ => new Aetheric.Provisioning.Persistence.ManagedRootCredentialStore(
+    builder.Configuration["RootCredentials:Directory"] ?? "data/root-credentials",
+    builder.Configuration["RootCredentials:KeyDirectory"] ?? "data/root-key"));
+builder.Services.AddSingleton<IRootConnectionValidator, Aetheric.Provisioning.Infrastructure.RootConnectionValidator>();
+builder.Services.AddProvisioningBootstrap(connectionConfiguration);
 var administratorSignIn = new AdministratorSignInConfiguration(connectionConfiguration, builder.Environment.IsDevelopment());
 builder.AddSetupAuthentication(connectionConfiguration, administratorSignIn);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();

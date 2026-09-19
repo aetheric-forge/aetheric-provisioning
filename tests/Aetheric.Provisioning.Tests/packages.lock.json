@@ -264,8 +264,6 @@
         "type": "Project",
         "dependencies": {
           "Aetheric.Provisioning.Application": "[1.0.0, )",
-          "Aetheric.Provisioning.Infrastructure": "[1.0.0, )",
-          "Aetheric.Provisioning.Persistence": "[1.0.0, )",
           "Aetheric.Provisioning.Registry": "[1.0.0, )",
           "Aetheric.Provisioning.Simulation": "[1.0.0, )",
           "Microsoft.AspNetCore.Authentication.OpenIdConnect": "[10.0.12, )"
@@ -321,7 +319,9 @@
       "aetheric.provisioning.web": {
         "type": "Project",
         "dependencies": {
-          "Aetheric.Provisioning.Components": "[1.0.0, )"
+          "Aetheric.Provisioning.Components": "[1.0.0, )",
+          "Aetheric.Provisioning.Infrastructure": "[1.0.0, )",
+          "Aetheric.Provisioning.Persistence": "[1.0.0, )"
         }
       },
       "aetheric.provisioning.workbench": {
