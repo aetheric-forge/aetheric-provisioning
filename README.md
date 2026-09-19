@@ -79,4 +79,4 @@ See [Docker deployment](docs/docker.md) for the image build, Compose settings, a
 
 See [infrastructure bootstrap](docs/infrastructure-bootstrap.md) for the final four-service credential setup page, storage configuration, and integration tests.
 
-The reusable [Razor component library](docs/component-library.md) lives in `src/Aetheric.Provisioning.Components`. The standalone executable is now an optional sample host under `samples/Aetheric.Provisioning.Web`.
+The reusable Razor component library moved to [`aetheric-web-components`](https://github.com/aetheric-forge/aetheric-web-components) (`src/Aetheric.Provisioning.Components` there), consumed here as the `external/web-components` submodule. `samples/Aetheric.Provisioning.Web` is an optional sample host for it.
