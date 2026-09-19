@@ -1,7 +1,7 @@
 using Aetheric.Provisioning.Application;
 using Aetheric.Provisioning.Engine;
 using Aetheric.Provisioning.Persistence;
-using Aetheric.Provisioning.Web;
+using Aetheric.Provisioning.Components;
 using Microsoft.AspNetCore.DataProtection;
 using Xunit;
 using Microsoft.Extensions.Logging;

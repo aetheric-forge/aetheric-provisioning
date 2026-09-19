@@ -7,7 +7,7 @@ using Aetheric.Provisioning.Application;
 using Aetheric.Provisioning.Engine;
 using Aetheric.Provisioning.Persistence;
 using Aetheric.Provisioning.Registry;
-using Aetheric.Provisioning.Web;
+using Aetheric.Provisioning.Components;
 using Aetheric.Provisioning.Web.Components;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -269,7 +269,7 @@ public sealed class SetupAuthenticationTests
             host.App.UseAuthentication(); host.App.UseAuthorization(); host.App.UseAntiforgery();
             host.App.MapSetupAuthentication(signIn);
             host.App.MapInfrastructure();
-            host.App.MapRazorComponents<App>().AddInteractiveServerRenderMode();
+            host.App.MapRazorComponents<App>().AddAdditionalAssemblies(typeof(ProvisioningComponentAssembly).Assembly).AddInteractiveServerRenderMode();
             // Test-only fixtures: never exposed by the production host.
             host.App.MapGet("/test/ticket", (HttpContext context, IAntiforgery antiforgery, SetupSessions sessions) =>
                 new TicketData(sessions.CreateTicket("client-secret"), antiforgery.GetAndStoreTokens(context).RequestToken!));

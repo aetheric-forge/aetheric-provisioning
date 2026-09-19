@@ -7,7 +7,7 @@ The browser flow is **connect Keycloak → select or create the Forge administra
 Configure the Keycloak server base URL, realm, client ID, public HTTPS origin, administrator role, and private bootstrap state directory. Before first use, explicitly initialize the deployment record:
 
 ```sh
-dotnet run --project src/Aetheric.Provisioning.Web -- --initialize-bootstrap
+dotnet run --project samples/Aetheric.Provisioning.Web -- --initialize-bootstrap
 ```
 
 Supply the same `BootstrapConnection__Authority`, `BootstrapConnection__Realm`, `BootstrapConnection__ClientId`, `BootstrapConnection__AdminRole`, and `BootstrapConnection__StateDirectory` settings when initializing and running. Local state defaults to `data/bootstrap`, relative to the working directory. See [Docker deployment](docker.md) for the persistent volume and container command. No client secret is needed for initialization. Initialization refuses to overwrite existing state; normal startup never initializes or repairs it. Keep the state directory private and back it up. Missing, invalid, or mismatched state blocks setup; losing it must not silently reopen administrator creation.

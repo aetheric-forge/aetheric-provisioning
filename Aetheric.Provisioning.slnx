@@ -9,9 +9,10 @@
     <Project Path="src/Aetheric.Provisioning.Definitions/Aetheric.Provisioning.Definitions.csproj" />
     <Project Path="src/Aetheric.Provisioning.Engine/Aetheric.Provisioning.Engine.csproj" />
     <Project Path="src/Aetheric.Provisioning.Simulation/Aetheric.Provisioning.Simulation.csproj" />
-    <Project Path="src/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj" />
+    <Project Path="src/Aetheric.Provisioning.Components/Aetheric.Provisioning.Components.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj" />
     <Project Path="samples/Aetheric.Provisioning.Workbench.Harness/Aetheric.Provisioning.Workbench.Harness.csproj" />
     <Project Path="samples/Aetheric.Provisioning.Harness/Aetheric.Provisioning.Harness.csproj" />
   </Folder>

@@ -42,7 +42,7 @@ dotnet restore --locked-mode
 dotnet build --configuration Release --no-restore
 dotnet test --configuration Release --no-build
 dotnet run --project samples/Aetheric.Provisioning.Harness --configuration Release --no-build
-dotnet run --project src/Aetheric.Provisioning.Web --configuration Release --no-build --urls http://localhost:5180
+dotnet run --project samples/Aetheric.Provisioning.Web --configuration Release --no-build --urls http://localhost:5180
 ```
 
 Open `http://localhost:5180` for the setup landing page, or `http://localhost:5180/simulation` for the Blazor simulation workflow. No provider accounts or credentials are needed.
@@ -67,7 +67,7 @@ See [durable state and restart recovery](docs/durable-state.md) for the opt-in l
 | `src/Aetheric.Provisioning.Definitions` | Public GitHub source adapter and supported YAML-profile validation |
 | `src/Aetheric.Provisioning.Application` | Host-independent load/configure/review/approval lifecycle |
 | `src/Aetheric.Provisioning.Simulation` | Pinned Decisions fixture projection, simulated Workbench and parent, in-memory state and secrets |
-| `src/Aetheric.Provisioning.Web` | Blazor Interactive Server source/configuration/review workflow with simulated execution |
+| `samples/Aetheric.Provisioning.Web` | Blazor Interactive Server source/configuration/review workflow with simulated execution |
 | `samples/Aetheric.Provisioning.Harness` | Non-UI M1 acceptance demonstration; not the future CLI product |
 | `tests/Aetheric.Provisioning.Tests` | Planning, ownership, failure/retry, state, cancellation, and secret-reference tests |
 
@@ -78,3 +78,5 @@ See [M2 loading and review](docs/m2-loading-review.md) for current behavior, val
 See [Docker deployment](docs/docker.md) for the image build, Compose settings, and nginx configuration.
 
 See [infrastructure bootstrap](docs/infrastructure-bootstrap.md) for the final four-service credential setup page, storage configuration, and integration tests.
+
+The reusable [Razor component library](docs/component-library.md) lives in `src/Aetheric.Provisioning.Components`. The standalone executable is now an optional sample host under `samples/Aetheric.Provisioning.Web`.

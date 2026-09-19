@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup><ProjectReference Include="../../src/Aetheric.Provisioning.Persistence/Aetheric.Provisioning.Persistence.csproj" /></ItemGroup>
   <ItemGroup><ProjectReference Include="../../samples/Aetheric.Provisioning.Harness/Aetheric.Provisioning.Harness.csproj" /></ItemGroup>
-  <ItemGroup><ProjectReference Include="../../src/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Aetheric.Provisioning.Components/Aetheric.Provisioning.Components.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../samples/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj" /></ItemGroup>
 </Project>
