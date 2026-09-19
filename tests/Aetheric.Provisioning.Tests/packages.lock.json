@@ -29,6 +29,11 @@
         "resolved": "3.1.4",
         "contentHash": "5mj99LvCqrq3CNi06xYdyIAXOEh+5b33F2nErCzI5zWiDdLHXiPXEWFSUAF8zlIv0ZWqjZNCwHTQeAPYbF3pCg=="
       },
+      "DnsClient": {
+        "type": "Transitive",
+        "resolved": "1.6.1",
+        "contentHash": "4H/f2uYJOZ+YObZjpY9ABrKZI+JNw3uizp6oMzTXwDw6F+2qIPhpRl/1t68O/6e98+vqNiYGu+lswmwdYUy3gg=="
+      },
       "IdentityModel": {
         "type": "Transitive",
         "resolved": "7.0.0",
@@ -67,10 +72,10 @@
       },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "arDBqTgFCyS0EvRV7O3MZturChstm50OJ0y9bDJvAcmEPJm0FFpFyjU/JLYyStNGGey081DvnQYlncNX5SJJGA==",
+        "resolved": "10.0.0",
+        "contentHash": "FU/IfjDfwaMuKr414SSQNTIti/69bHEMb+QKrskRb26oVqpx3lNFXMjs/RC9ZUuhBhcwDM2BwOgoMw+PZ+beqQ==",
         "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.0"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0"
         }
       },
       "Microsoft.IdentityModel.Abstractions": {
@@ -135,15 +140,51 @@
           "Newtonsoft.Json": "13.0.3"
         }
       },
+      "MongoDB.Bson": {
+        "type": "Transitive",
+        "resolved": "3.11.2",
+        "contentHash": "KU/swasyhcoi4NoxiY06/zRYCayH128s6Ye9Cm0yCXfyx5mAsnEv2wM+5Hg3iaBiw28we4t6n95Bk6EyrTQx5w=="
+      },
+      "MongoDB.Driver": {
+        "type": "Transitive",
+        "resolved": "3.11.2",
+        "contentHash": "ih0sEiM9v6PtL5hReqLCupiWkxKk12E2wo0udybBnMpFhSSREjJ5FxUv3VyClfodhVODjF3Z3XrbXHPfL0NlVw==",
+        "dependencies": {
+          "DnsClient": "1.6.1",
+          "Microsoft.Extensions.Logging.Abstractions": "2.0.0",
+          "MongoDB.Bson": "3.11.2",
+          "SharpCompress": "0.48.1",
+          "Snappier": "1.3.1",
+          "ZstdSharp.Port": "0.7.3"
+        }
+      },
       "Newtonsoft.Json": {
         "type": "Transitive",
         "resolved": "13.0.3",
         "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
+      "Npgsql": {
+        "type": "Transitive",
+        "resolved": "10.0.0",
+        "contentHash": "xZAYhPOU2rUIFpV48xsqhCx9vXs6Y+0jX2LCoSEfDFYMw9jtAOUk3iQsCnDLrFIv9NT3JGMihn7nnuZsPKqJmA==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
+        }
+      },
       "Pipelines.Sockets.Unofficial": {
         "type": "Transitive",
         "resolved": "2.2.8",
         "contentHash": "zG2FApP5zxSx6OcdJQLbZDk2AVlN2BNQD6MorwIfV6gVj0RRxWPEp2LXAxqDGZqeNV1Zp0BNPcNaey/GXmTdvQ=="
+      },
+      "SharpCompress": {
+        "type": "Transitive",
+        "resolved": "0.48.1",
+        "contentHash": "SqGaVniGG943Gph/gHhUQUiZPyC7y0tXZyMf0/B2oGsMav9dqs7JJOuUA+xOkwKYaWM2TM7aZQjNK91f4bX71A=="
+      },
+      "Snappier": {
+        "type": "Transitive",
+        "resolved": "1.3.1",
+        "contentHash": "DOdDQiO8YZ5rBtVLY+6CmR1yp9WYoJRgEEktPBrR0tEj9QO2djA/zv0O3DX0OZpEAfosbY8pytQ9tQUogwQsEA=="
       },
       "StackExchange.Redis": {
         "type": "Transitive",
@@ -208,6 +249,11 @@
         "resolved": "16.3.0",
         "contentHash": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA=="
       },
+      "ZstdSharp.Port": {
+        "type": "Transitive",
+        "resolved": "0.7.3",
+        "contentHash": "U9Ix4l4cl58Kzz1rJzj5hoVTjmbx1qGMwzAcbv1j/d3NzrFaESIurQyg+ow4mivCgkE3S413y+U9k4WdnEIkRA=="
+      },
       "aetheric.provisioning.application": {
         "type": "Project",
         "dependencies": {
@@ -229,6 +275,15 @@
         "dependencies": {
           "Aetheric.Provisioning.Persistence": "[1.0.0, )",
           "Aetheric.Provisioning.Simulation": "[1.0.0, )"
+        }
+      },
+      "aetheric.provisioning.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Aetheric.Provisioning.Application": "[1.0.0, )",
+          "MongoDB.Driver": "[3.11.2, )",
+          "Npgsql": "[10.0.0, )",
+          "StackExchange.Redis": "[2.8.24, )"
         }
       },
       "aetheric.provisioning.persistence": {
@@ -256,6 +311,7 @@
         "type": "Project",
         "dependencies": {
           "Aetheric.Provisioning.Application": "[1.0.0, )",
+          "Aetheric.Provisioning.Infrastructure": "[1.0.0, )",
           "Aetheric.Provisioning.Persistence": "[1.0.0, )",
           "Aetheric.Provisioning.Registry": "[1.0.0, )",
           "Aetheric.Provisioning.Simulation": "[1.0.0, )",

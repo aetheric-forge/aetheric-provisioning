@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Aetheric.Provisioning.Application;
+using Aetheric.Provisioning.Engine;
 using Aetheric.Provisioning.Persistence;
 using Aetheric.Provisioning.Registry;
 using Aetheric.Provisioning.Web;
@@ -72,6 +73,7 @@ public sealed class SetupAuthenticationTests
 
     [Theory]
     [InlineData("valid", RegistryBootstrapPhase.Completed)]
+    [InlineData("resume-valid", RegistryBootstrapPhase.Completed)]
     [InlineData("wrong-subject", RegistryBootstrapPhase.AuthorityAssigned)]
     [InlineData("missing-role", RegistryBootstrapPhase.AuthorityAssigned)]
     [InlineData("bad-nonce", RegistryBootstrapPhase.AuthorityAssigned)]
@@ -81,8 +83,9 @@ public sealed class SetupAuthenticationTests
     public async Task Real_oidc_callback_completes_only_after_protocol_checks_and_selected_identity(string scenario, RegistryBootstrapPhase expected)
     {
         await using var host = await Host.Start();
-        await host.Store.SaveAsync(new(host.Configuration.Settings, RegistryBootstrapPhase.AuthorityAssigned, "selected-subject"), default);
-        await host.Begin(await host.Ticket());
+        await host.Store.SaveAsync(new(host.Configuration.Settings, scenario == "resume-valid" ? RegistryBootstrapPhase.Completed : RegistryBootstrapPhase.AuthorityAssigned, "selected-subject"), default);
+        var beginning = await host.Begin(await host.Ticket());
+        if (scenario == "resume-valid") Assert.Equal("/setup/resume", beginning.Headers.Location!.ToString());
         var challenge = await host.Client.GetAsync("/test/challenge");
         Assert.Equal(HttpStatusCode.Redirect, challenge.StatusCode);
         var query = QueryHelpers.ParseQuery(challenge.Headers.Location!.Query);
@@ -93,11 +96,38 @@ public sealed class SetupAuthenticationTests
         Assert.True(expected == (await host.Store.ReadAsync(default)).Phase, host.Tokens.Failure ?? "Completion rejected after validation");
         if (expected == RegistryBootstrapPhase.Completed)
         {
-            Assert.Equal("/setup/complete", callback.Headers.Location!.ToString());
-            Assert.Contains("Your Forge administrator is ready", await host.Client.GetStringAsync("/setup/complete"));
+            Assert.Equal("/setup/infrastructure", callback.Headers.Location!.ToString());
+            Assert.Contains("Redis", await host.Client.GetStringAsync("/setup/infrastructure"));
+            var infrastructurePage = await host.Client.GetStringAsync("/setup/infrastructure");
+            var csrf = WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Match(infrastructurePage,
+                "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
+            var save = new Dictionary<string,string> { ["__RequestVerificationToken"] = csrf };
+            foreach (var system in InfrastructureConnections.Systems)
+            {
+                var fields = new Dictionary<string,string> { ["__RequestVerificationToken"] = csrf,
+                    ["system"] = system, ["host"] = "localhost", ["port"] = "1234", ["username"] = "root",
+                    ["password"] = "do-not-echo-root-password", ["url"] = "http://localhost:15672/",
+                    ["database"] = "postgres", ["authDatabase"] = "admin", ["directConnection"] = "true" };
+                var test = await host.Client.PostAsync("/setup/infrastructure/test",new FormUrlEncodedContent(fields));
+                Assert.Equal(HttpStatusCode.OK,test.StatusCode);
+                var json = await test.Content.ReadAsStringAsync();
+                Assert.DoesNotContain("do-not-echo-root-password",json);
+                using var result = JsonDocument.Parse(json);
+                Assert.True(result.RootElement.GetProperty("success").GetBoolean());
+                foreach (var field in fields) if (field.Key != "__RequestVerificationToken") save[system+"."+field.Key]=field.Value;
+                save[system+".receipt"]=result.RootElement.GetProperty("receipt").GetString()!;
+            }
+            save["redis.password"]="edited";
+            Assert.Equal(HttpStatusCode.BadRequest,(await host.Client.PostAsync("/setup/infrastructure/save",new FormUrlEncodedContent(save))).StatusCode);
+            Assert.False((await host.App.Services.GetRequiredService<IInfrastructureStateStore>().ReadAsync(default))!.Completed);
+            save["redis.password"]="do-not-echo-root-password";
+            Assert.Equal(HttpStatusCode.OK,(await host.Client.PostAsync("/setup/infrastructure/save",new FormUrlEncodedContent(save))).StatusCode);
+            Assert.Contains("Your Forge is ready",await host.Client.GetStringAsync("/setup/complete"));
+            Assert.Equal(HttpStatusCode.Conflict,(await host.Client.PostAsync("/setup/infrastructure/save",new FormUrlEncodedContent(save))).StatusCode);
             Assert.False(host.Sessions.IsActive(host.Session));
             var closed = await host.Begin(await host.Ticket());
             Assert.Equal("/setup/connection-error?reason=state", closed.Headers.Location!.ToString());
+            Assert.Equal(HttpStatusCode.Redirect, (await host.Client.GetAsync("/setup/administrator")).StatusCode);
         }
         else Assert.Equal("/setup/signin-error", callback.Headers.Location!.ToString());
     }
@@ -175,6 +205,9 @@ public sealed class SetupAuthenticationTests
         Assert.Equal(1, host.Accounts.Searches);
     }
 
+    private sealed class PassingValidator : IRootConnectionValidator
+    { public Task<ConnectionCheck> TestAsync(string system, RootCredential value, CancellationToken ct) => Task.FromResult(ConnectionCheck.Verified); }
+
     private sealed record TicketData(string Ticket, string Antiforgery);
     private sealed class Host : IAsyncDisposable
     {
@@ -201,6 +234,12 @@ public sealed class SetupAuthenticationTests
             builder.WebHost.UseUrls("http://127.0.0.1:0");
             builder.Services.AddSingleton(host.Configuration);
             builder.Services.AddSingleton<IRegistryBootstrapStore>(host.Store);
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddSingleton<IInfrastructureStateStore>(new FileInfrastructureStateStore(host._directory));
+            builder.Services.AddSingleton<IRootCredentialStore>(new ManagedRootCredentialStore(Path.Combine(host._directory, "credentials"), Path.Combine(host._directory, "key")));
+            builder.Services.AddSingleton<IRootConnectionValidator, PassingValidator>();
+            builder.Services.AddSingleton<InfrastructureReceipts>();
+            builder.Services.AddScoped<InfrastructureSetup>();
             if (existingAccounts)
             {
                 host.Accounts = new ExistingAccounts(host.Configuration);
@@ -229,6 +268,7 @@ public sealed class SetupAuthenticationTests
             host.App = builder.Build();
             host.App.UseAuthentication(); host.App.UseAuthorization(); host.App.UseAntiforgery();
             host.App.MapSetupAuthentication(signIn);
+            host.App.MapInfrastructure();
             host.App.MapRazorComponents<App>().AddInteractiveServerRenderMode();
             // Test-only fixtures: never exposed by the production host.
             host.App.MapGet("/test/ticket", (HttpContext context, IAntiforgery antiforgery, SetupSessions sessions) =>
@@ -239,7 +279,7 @@ public sealed class SetupAuthenticationTests
                 var properties = new AuthenticationProperties { RedirectUri = "/setup/complete" };
                 properties.Items["setup-session"] = host.Session;
                 await context.ChallengeAsync("SetupOidc", properties);
-            }).RequireAuthorization(SetupAuthentication.Policy);
+            }).RequireAuthorization(SetupAuthentication.SignInPolicy);
             await host.App.StartAsync();
             var address = host.App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
             host.Client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { BaseAddress = new Uri(address) };

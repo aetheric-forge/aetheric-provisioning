@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Aetheric.Provisioning.Infrastructure/Aetheric.Provisioning.Infrastructure.csproj" />
     <Project Path="src/Aetheric.Provisioning.Registry/Aetheric.Provisioning.Registry.csproj" />
     <Project Path="src/Aetheric.Provisioning.Workbench/Aetheric.Provisioning.Workbench.csproj" />
     <Project Path="src/Aetheric.Provisioning.Workbench.Redis/Aetheric.Provisioning.Workbench.Redis.csproj" />

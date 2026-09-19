@@ -11,7 +11,7 @@ namespace Aetheric.Provisioning.Persistence;
 /// sensitive than the engine's own generated child-resource secrets, so a compromise of one key
 /// should not expose the other. Retain the key separately across restarts; no automatic rotation.
 /// </summary>
-public sealed class FileRootCredentialStore : IRootCredentialStore
+public sealed class FileRootCredentialStore : IRootCredentialStore, IDisposable
 {
     private readonly FileStorage _files;
     private readonly byte[] _key;
@@ -78,6 +78,8 @@ public sealed class FileRootCredentialStore : IRootCredentialStore
         Validate(envelope.Credential);
         return envelope.Credential;
     }
+
+    public void Dispose() => CryptographicOperations.ZeroMemory(_key);
 
     private static void Validate(RootCredential credential)
     {

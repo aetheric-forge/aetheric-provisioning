@@ -16,8 +16,12 @@ services:
       BootstrapConnection__PublicOrigin: ${PROVISIONER_PUBLIC_ORIGIN:-}
       BootstrapConnection__AdminRole: ${FORGE_ADMIN_ROLE:-forge-admin}
       BootstrapConnection__StateDirectory: /home/app/.local/share/aetheric/bootstrap
+      RootCredentials__Directory: /home/app/.local/share/aetheric/root-credentials
+      RootCredentials__KeyDirectory: /home/app/.local/share/aetheric/root-key
     volumes:
       - bootstrap-state:/home/app/.local/share/aetheric/bootstrap
+      - root-credentials:/home/app/.local/share/aetheric/root-credentials
+      - root-key:/home/app/.local/share/aetheric/root-key
       - protection-keys:/home/app/.aspnet/DataProtection-Keys
     security_opt:
       - no-new-privileges:true
@@ -27,3 +31,5 @@ services:
 volumes:
   bootstrap-state:
   protection-keys:
+  root-credentials:
+  root-key:

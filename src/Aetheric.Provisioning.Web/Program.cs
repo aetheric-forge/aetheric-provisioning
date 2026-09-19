@@ -26,6 +26,15 @@ builder.Services.AddSingleton<IRegistryBootstrapStore>(_ =>
     new Aetheric.Provisioning.Persistence.FileRegistryBootstrapStore(connectionConfiguration.StateDirectory));
 builder.Services.AddSingleton<ISetupRegistryClients, SetupRegistryClients>();
 builder.Services.AddScoped<SetupBootstrap>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IInfrastructureStateStore>(_ =>
+    new Aetheric.Provisioning.Persistence.FileInfrastructureStateStore(connectionConfiguration.StateDirectory));
+builder.Services.AddSingleton<IRootCredentialStore>(_ => new Aetheric.Provisioning.Persistence.ManagedRootCredentialStore(
+    builder.Configuration["RootCredentials:Directory"] ?? "data/root-credentials",
+    builder.Configuration["RootCredentials:KeyDirectory"] ?? "data/root-key"));
+builder.Services.AddSingleton<IRootConnectionValidator, Aetheric.Provisioning.Infrastructure.RootConnectionValidator>();
+builder.Services.AddSingleton<InfrastructureReceipts>();
+builder.Services.AddScoped<InfrastructureSetup>();
 var administratorSignIn = new AdministratorSignInConfiguration(connectionConfiguration, builder.Environment.IsDevelopment());
 builder.Services.AddSingleton(connectionConfiguration);
 builder.AddSetupAuthentication(connectionConfiguration, administratorSignIn);
@@ -54,5 +63,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 app.MapSetupAuthentication(administratorSignIn);
+app.MapInfrastructure();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.Run();

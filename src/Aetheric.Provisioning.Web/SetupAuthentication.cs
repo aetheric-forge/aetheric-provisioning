@@ -13,6 +13,11 @@ namespace Aetheric.Provisioning.Web;
 public static class SetupAuthentication
 {
     public const string Policy = "SetupConnection";
+    public const string ResumePolicy = "ResumeInfrastructure";
+    public const string SignInPolicy = "SetupSignIn";
+    public const string ResumeClaim = "aetheric:resume-infrastructure";
+    public const string AdminSessionClaim = "aetheric:administrator-session";
+    public const string AdminExpiryClaim = "aetheric:administrator-expiry";
     public const string AdminPolicy = "ForgeAdministrator";
     public const string ConnectionClaim = "aetheric:setup-connection";
     public const string IssuerClaim = "aetheric:issuer";
@@ -30,6 +35,9 @@ public static class SetupAuthentication
         builder.Services.AddAuthorization(options =>
         {
             options.AddPolicy(Policy, policy => policy.RequireAuthenticatedUser().RequireClaim(ConnectionClaim, "true"));
+            options.AddPolicy(ResumePolicy, policy => policy.RequireAuthenticatedUser().RequireClaim(ResumeClaim, "true"));
+            options.AddPolicy(SignInPolicy, policy => policy.RequireAuthenticatedUser().RequireAssertion(context =>
+                context.User.HasClaim(ConnectionClaim, "true") || context.User.HasClaim(ResumeClaim, "true")));
             options.AddPolicy(AdminPolicy, policy => policy.RequireAuthenticatedUser().RequireClaim(VerifiedClaim, "true"));
         });
         var authentication = builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -53,7 +61,11 @@ public static class SetupAuthentication
                         var valid = context.Principal!.HasClaim(VerifiedClaim, "true")
                             ? state.Phase == RegistryBootstrapPhase.Completed && context.Principal.FindFirstValue("sub") == state.SubjectId
                                 && context.Principal.FindFirstValue(IssuerClaim) == state.Settings.Issuer
-                            : state.Phase != RegistryBootstrapPhase.Completed && sessions.IsActive(context.Principal.FindFirstValue(SessionClaim));
+                                && !string.IsNullOrEmpty(context.Principal.FindFirstValue(AdminSessionClaim))
+                                && long.TryParse(context.Principal.FindFirstValue(AdminExpiryClaim), out var expiry)
+                                && expiry > DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                            : (state.Phase != RegistryBootstrapPhase.Completed || context.Principal.HasClaim(ResumeClaim, "true"))
+                                && sessions.IsActive(context.Principal.FindFirstValue(SessionClaim));
                         if (!valid) context.RejectPrincipal();
                     }
                     catch (Exception) { context.RejectPrincipal(); }
@@ -128,9 +140,18 @@ public static class SetupAuthentication
                     if (!sessions.IsActive(id)) throw new UnauthorizedAccessException();
                     await context.HttpContext.RequestServices.GetRequiredService<SetupBootstrap>()
                         .CompleteAsync(context.Principal!, context.HttpContext.RequestAborted);
+                    var identity = (ClaimsIdentity)context.Principal!.Identity!;
+                    var expires = DateTimeOffset.UtcNow.AddMinutes(20);
+                    identity.AddClaim(new Claim(AdminSessionClaim, Guid.NewGuid().ToString("N")));
+                    identity.AddClaim(new Claim(AdminExpiryClaim, expires.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                    context.Properties!.ExpiresUtc = expires;
                     sessions.Clear();
-                    context.Properties!.Items.Remove(SessionProperty);
-                    context.ReturnUri = "/setup/complete";
+                    context.Properties.Items.Remove(SessionProperty);
+                    var infrastructure = await context.HttpContext.RequestServices.GetRequiredService<IInfrastructureStateStore>()
+                        .ReadAsync(context.HttpContext.RequestAborted);
+                    if (infrastructure is not null && (infrastructure.Deployment != connection.Settings
+                        || infrastructure.SubjectId != context.Principal.FindFirstValue("sub"))) throw new InvalidDataException();
+                    context.ReturnUri = infrastructure?.Completed == true ? "/setup/complete" : "/setup/infrastructure";
                 }
                 catch (Exception)
                 {
@@ -171,16 +192,17 @@ public static class SetupAuthentication
                 if (id is null)
                 { context.Response.Redirect("/setup/connection-error?reason=ticket"); return; }
                 sessions.End(context.User.FindFirstValue(SessionClaim));
-                var identity = new ClaimsIdentity(new[] { new Claim(ConnectionClaim, "true"), new Claim(SessionClaim, id), new Claim(ClaimTypes.NameIdentifier, id) },
+                var resume = (await bootstrap.StateAsync(context.RequestAborted)).Phase == RegistryBootstrapPhase.Completed;
+                var identity = new ClaimsIdentity(new[] { new Claim(resume ? ResumeClaim : ConnectionClaim, "true"), new Claim(SessionClaim, id), new Claim(ClaimTypes.NameIdentifier, id) },
                     CookieAuthenticationDefaults.AuthenticationScheme);
                 await context.SignInAsync(new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = false });
-                context.Response.Redirect("/setup/administrator");
+                context.Response.Redirect(resume ? "/setup/resume" : "/setup/administrator");
             }
             catch (Exception)
             { sessions.End(id); context.Response.Redirect("/setup/connection-error?reason=session"); }
         });
         app.MapPost("/setup/administrator/signin", async (HttpContext context, IAntiforgery antiforgery,
-            SetupBootstrap bootstrap, BootstrapConnectionConfiguration connection) =>
+            SetupBootstrap bootstrap, BootstrapConnectionConfiguration connection, SetupSessions sessions) =>
         {
             try { await antiforgery.ValidateRequestAsync(context); }
             catch (AntiforgeryValidationException) { context.Response.StatusCode = StatusCodes.Status400BadRequest; return; }
@@ -188,17 +210,23 @@ public static class SetupAuthentication
             { context.Response.Redirect("/setup/signin-error"); return; }
             try
             {
-                var secret = bootstrap.RequireConnection(context.User);
-                if ((await bootstrap.StateAsync(context.RequestAborted)).Phase != RegistryBootstrapPhase.AuthorityAssigned)
+                await bootstrap.RequireOpenAsync(context.RequestAborted);
+                var phase = (await bootstrap.StateAsync(context.RequestAborted)).Phase;
+                var resume = context.User.HasClaim(ResumeClaim, "true");
+                if (phase != (resume ? RegistryBootstrapPhase.Completed : RegistryBootstrapPhase.AuthorityAssigned))
                     throw new InvalidOperationException();
-                using var client = new KeycloakProvisionerConnection(connection.Options(connection.ClientId, secret));
-                await client.PrepareAdministratorSignInAsync(configuration.Callback, connection.AdminRole, context.RequestAborted);
+                var secret = sessions.Secret(context.User.FindFirstValue(SessionClaim)) ?? throw new UnauthorizedAccessException();
+                if (!resume)
+                {
+                    using var client = new KeycloakProvisionerConnection(connection.Options(connection.ClientId, secret));
+                    await client.PrepareAdministratorSignInAsync(configuration.Callback, connection.AdminRole, context.RequestAborted);
+                }
                 var properties = new AuthenticationProperties { RedirectUri = "/setup/complete" };
                 properties.Items[SessionProperty] = context.User.FindFirstValue(SessionClaim);
                 await context.ChallengeAsync(Scheme, properties);
             }
             catch (Exception) { context.Response.Redirect("/setup/signin-error"); }
-        }).RequireAuthorization(Policy);
+        }).RequireAuthorization(SignInPolicy);
         app.MapPost("/setup/connection/end", async (HttpContext context, IAntiforgery antiforgery, SetupSessions sessions) =>
         {
             try { await antiforgery.ValidateRequestAsync(context); }
