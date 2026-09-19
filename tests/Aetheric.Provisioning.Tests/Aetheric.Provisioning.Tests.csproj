@@ -17,4 +17,5 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup><ProjectReference Include="../../samples/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../apps/Aetheric.Provisioning.Worker/Aetheric.Provisioning.Worker.csproj" /></ItemGroup>
 </Project>

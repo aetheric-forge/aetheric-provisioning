@@ -10,6 +10,9 @@
     <Project Path="src/Aetheric.Provisioning.Engine/Aetheric.Provisioning.Engine.csproj" />
     <Project Path="src/Aetheric.Provisioning.Simulation/Aetheric.Provisioning.Simulation.csproj" />
   </Folder>
+  <Folder Name="/apps/">
+    <Project Path="apps/Aetheric.Provisioning.Worker/Aetheric.Provisioning.Worker.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Aetheric.Provisioning.Web/Aetheric.Provisioning.Web.csproj" />
     <Project Path="samples/Aetheric.Provisioning.Workbench.Harness/Aetheric.Provisioning.Workbench.Harness.csproj" />
@@ -20,8 +23,10 @@
   </Folder>
   <Folder Name="/external/">
     <Project Path="external/runtime/src/Institutions/AethericForge.Runtime.Institutions.Abstractions/AethericForge.Runtime.Institutions.Abstractions.csproj" />
+    <Project Path="external/runtime/src/Institutions/AethericForge.Runtime.Institutions.Campus/AethericForge.Runtime.Institutions.Campus.csproj" />
     <Project Path="external/runtime/src/Abstractions/Interfaces/AethericForge.Runtime.Abstractions.Interfaces/AethericForge.Runtime.Abstractions.Interfaces.csproj" />
     <Project Path="external/runtime/src/Models/AethericForge.Runtime.Models/AethericForge.Runtime.Models.csproj" />
     <Project Path="external/runtime/src/Providers/AethericForge.Runtime.Providers.Identity.Keycloak/AethericForge.Runtime.Providers.Identity.Keycloak.csproj" />
+    <Project Path="external/runtime/src/Providers/AethericForge.Runtime.Providers.Post.RabbitMq/AethericForge.Runtime.Providers.Post.RabbitMq.csproj" />
   </Folder>
 </Solution>
